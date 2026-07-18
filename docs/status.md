@@ -43,3 +43,4 @@ Routes/screens implied by the flow in `docs/project-brief.md` §3:
 - Non-transferable/soulbound tokens (would need a Plutus validator) — tokens are plain transferable native assets by design for now.
 - On-chain DAO voting smart contract — jury voting logic lives off-chain/in Firestore; only the mint transaction goes on chain.
 - Real satellite/geolocation verification, categories beyond trees planted, wallet claim/export for companies.
+<!-- test -->
