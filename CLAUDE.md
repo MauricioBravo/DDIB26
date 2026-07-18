@@ -46,16 +46,27 @@ Defined as CSS variables / Tailwind theme tokens in `src/app/globals.css` — us
 - `mauricio` and `timileyin` — one persistent personal branch per person. **If you are Claude Code working in this repo, check `git branch --show-current` and keep working on whichever of these two is currently checked out — do not switch to the other person's branch.** Rebase/merge from `dev` periodically to stay current; open a PR into `dev` when a piece of work is ready for review.
 - Short-lived `feature/<name>-<short-desc>` branches off a personal branch are fine for a specific chunk of work, e.g. `feature/timileyin-evidence-upload`.
 
-### Sync safety — before pushing or propagating anywhere other than your own branch
+### Sync safety — before pushing or merging anywhere other than your own branch
 
-The two of you work in parallel and must not clobber each other's in-progress work. Before pushing to `dev`, `main`, or the *other person's* personal branch, always:
+The two of you work in parallel and must not clobber each other's in-progress work, and a clean git merge is not the same thing as a safe one — evaluate every merge, don't rubber-stamp it just because git didn't report a conflict.
 
 1. `git fetch origin` first — never assume your local view of another branch is current.
-2. Compare before touching anything: `git log --oneline <target>..HEAD` (your new work) and `git log --oneline HEAD..origin/<target>` (anything already there that you don't have). If the second one is non-empty, stop — there's independent work you haven't seen.
-3. Only fast-forward/merge into `dev` or the other person's branch when it's a clean fast-forward. If it isn't (real divergence, unrelated in-progress work), do **not** force it through — leave that branch alone and let its owner merge/rebase it themselves, or resolve it together.
-4. Never force-push (`--force`/`--force-with-lease`) to `dev`, `main`, or either personal branch, under any circumstance.
+2. Check divergence before touching anything: `git log --oneline <target>..HEAD` (your new work) and `git log --oneline HEAD..origin/<target>` (anything already there that you don't have). If the second one is non-empty, there's independent work you haven't seen — don't fast-forward/force through it.
+3. Actually read the diff of what you're about to bring in (`git diff <target>...<source>`), especially for shared files that both of you touch: `CLAUDE.md`, `docs/status.md`, `package.json`/`package-lock.json`, shared components/lib code. A textually clean merge can still be a *semantic* collision — e.g. both of you edited different sections of `docs/status.md` and it merges fine but now has contradictory or duplicate entries, or someone changed a shared component's props while the other added a new call site elsewhere. If something looks off, stop and ask rather than merging through it.
+4. After merging, run `npm run build` and `npm run lint` on the result before pushing — a merge that compiles for each side separately can still break once combined.
+5. Only fast-forward/merge into `dev` or the other person's branch when it's a clean fast-forward *and* the diff review above didn't raise anything. If it isn't clean, do **not** force it through — leave that branch alone and let its owner merge/rebase it themselves, or resolve it together.
+6. Never force-push (`--force`/`--force-with-lease`) to `dev`, `main`, or either personal branch, under any circumstance.
 
 Concretely: if Timileyin has unrelated work in progress on `timileyin` that doesn't overlap with what you just built, push your own branch and `dev` as usual, but leave `timileyin` untouched until he's ready to merge `dev` into it himself.
+
+### Promoting `dev` to `main`
+
+This triggers a production deploy, so treat it deliberately, not as a rubber-stamp of "no conflicts":
+
+1. Run the sync-safety checklist above first — no unseen divergence, diff reviewed, build/lint clean on `dev`.
+2. Confirm `docs/status.md` already reflects whatever is being promoted (it should have been updated in the commit that made the change, per the hard rule above).
+3. If all of that checks out, fast-forwarding `main` to `dev` and pushing is fine without asking permission for every single promotion — but say clearly what's being promoted and why it's safe (e.g. "no divergence, build/lint clean, status doc up to date").
+4. If anything is uncertain — a failing build, an unreviewed diff, unclear scope of what changed — stop and flag it instead of pushing to `main`.
 
 ## Commands
 
