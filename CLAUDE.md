@@ -6,6 +6,7 @@ Blockchain-verified proof of corporate environmental action (trees planted, PoC 
 
 ## Hard rules for this repo
 
+- `docs/status.md` tracks current project status and the frontend/backend TODO list. Update it in the same commit whenever you finish, start, or change the scope of something — it must never go stale. Check it at the start of a session to know what's actually done vs. still pending.
 - No emojis anywhere: UI copy, code, comments, commit messages, docs.
 - Never add yourself (Claude) as a commit author or co-author. No `Co-Authored-By` trailer, no session links in commit messages. Plain, human-style commit messages only.
 - Do not leave shadcn/ui on its default gray/zinc theme. Always use the Palette A tokens below plus the chosen typography — see "Design" section.
