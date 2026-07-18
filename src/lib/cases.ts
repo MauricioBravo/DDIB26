@@ -1,0 +1,207 @@
+export type CaseStatus = "pending" | "certified" | "rejected";
+
+export type VoteDecision = "approve" | "reject";
+
+export type JurorVote = {
+  jurorId: string;
+  jurorLabel: string;
+  decision: VoteDecision;
+  simulated: boolean;
+  castAt: string;
+};
+
+export type Evidence = {
+  caption: string;
+  location: string;
+  capturedAt: string;
+};
+
+export type Case = {
+  id: string;
+  company: string;
+  actionType: string;
+  quantity: string;
+  submittedAt: string;
+  companyEvidence: Evidence;
+  verifierEvidence: Evidence & { verifierId: string };
+  status: CaseStatus;
+  votes: JurorVote[];
+};
+
+export type NewCaseInput = Omit<Case, "id" | "submittedAt" | "status" | "votes">;
+
+// Module-scope store: survives across requests within one running server
+// process (fine for `next dev` / a single `next start`), resets on restart
+// or redeploy. Deliberate stand-in for Firestore per docs/status.md.
+const cases: Case[] = [
+  {
+    id: "case-006",
+    company: "Patagonia",
+    actionType: "Trees planted",
+    quantity: "3,400 trees",
+    submittedAt: "2026-07-17T09:12:00.000Z",
+    companyEvidence: {
+      caption: "Restoration crew photo, ridge line plot B",
+      location: "39.6403 N, 106.3742 W",
+      capturedAt: "2026-07-15",
+    },
+    verifierEvidence: {
+      caption: "Independent site inspection, sample count of plot B",
+      location: "39.6401 N, 106.3745 W",
+      capturedAt: "2026-07-16",
+      verifierId: "verifier-04",
+    },
+    status: "pending",
+    votes: [],
+  },
+  {
+    id: "case-005",
+    company: "IKEA",
+    actionType: "Trees planted",
+    quantity: "12,000 trees",
+    submittedAt: "2026-07-14T15:40:00.000Z",
+    companyEvidence: {
+      caption: "Aerial photo of reforestation block 7",
+      location: "58.4108 N, 15.6214 E",
+      capturedAt: "2026-07-12",
+    },
+    verifierEvidence: {
+      caption: "Ground-truth inspection, block 7 sapling survival check",
+      location: "58.4110 N, 15.6209 E",
+      capturedAt: "2026-07-13",
+      verifierId: "verifier-01",
+    },
+    status: "pending",
+    votes: [],
+  },
+  {
+    id: "case-004",
+    company: "Maersk",
+    actionType: "Trees planted",
+    quantity: "850 trees",
+    submittedAt: "2026-07-10T11:05:00.000Z",
+    companyEvidence: {
+      caption: "Port-side mangrove planting, phase 2",
+      location: "1.2644 N, 103.8228 E",
+      capturedAt: "2026-07-08",
+    },
+    verifierEvidence: {
+      caption: "Mangrove sapling density verification",
+      location: "1.2641 N, 103.8230 E",
+      capturedAt: "2026-07-09",
+      verifierId: "verifier-02",
+    },
+    status: "pending",
+    votes: [],
+  },
+  {
+    id: "case-003",
+    company: "Siemens",
+    actionType: "Trees planted",
+    quantity: "5,100 trees",
+    submittedAt: "2026-07-05T08:30:00.000Z",
+    companyEvidence: {
+      caption: "Employee volunteer planting day, industrial park buffer zone",
+      location: "48.1372 N, 11.5756 E",
+      capturedAt: "2026-07-03",
+    },
+    verifierEvidence: {
+      caption: "Buffer zone sample plot verification",
+      location: "48.1369 N, 11.5758 E",
+      capturedAt: "2026-07-04",
+      verifierId: "verifier-04",
+    },
+    status: "pending",
+    votes: [],
+  },
+  {
+    id: "case-002",
+    company: "Unilever",
+    actionType: "Trees planted",
+    quantity: "2,200 trees",
+    submittedAt: "2026-06-29T13:50:00.000Z",
+    companyEvidence: {
+      caption: "Watershed protection planting, upstream tea estate",
+      location: "0.3476 N, 35.0038 E",
+      capturedAt: "2026-06-27",
+    },
+    verifierEvidence: {
+      caption: "Watershed plot inspection and GPS survey",
+      location: "0.3479 N, 35.0035 E",
+      capturedAt: "2026-06-28",
+      verifierId: "verifier-03",
+    },
+    status: "pending",
+    votes: [],
+  },
+  {
+    id: "case-001",
+    company: "Nestle",
+    actionType: "Trees planted",
+    quantity: "6,750 trees",
+    submittedAt: "2026-06-20T10:15:00.000Z",
+    companyEvidence: {
+      caption: "Cocoa-belt agroforestry planting, season 1",
+      location: "6.6019 N, 1.5757 E",
+      capturedAt: "2026-06-18",
+    },
+    verifierEvidence: {
+      caption: "Agroforestry plot inspection, season 1 sample",
+      location: "6.6022 N, 1.5754 E",
+      capturedAt: "2026-06-19",
+      verifierId: "verifier-01",
+    },
+    status: "pending",
+    votes: [],
+  },
+];
+
+let nextCaseNumber = cases.length + 1;
+
+export function listCases(): Case[] {
+  return [...cases].sort(
+    (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime(),
+  );
+}
+
+export function getCase(id: string): Case | undefined {
+  return cases.find((c) => c.id === id);
+}
+
+export function addCase(input: NewCaseInput): Case {
+  const created: Case = {
+    ...input,
+    id: `case-${String(nextCaseNumber).padStart(3, "0")}`,
+    submittedAt: new Date().toISOString(),
+    status: "pending",
+    votes: [],
+  };
+  nextCaseNumber += 1;
+  cases.push(created);
+  return created;
+}
+
+export function castVote(
+  caseId: string,
+  vote: Omit<JurorVote, "castAt">,
+): Case {
+  const target = cases.find((c) => c.id === caseId);
+  if (!target) {
+    throw new Error(`Unknown case: ${caseId}`);
+  }
+  if (target.votes.length >= 3) {
+    return target;
+  }
+
+  target.votes.push({ ...vote, castAt: new Date().toISOString() });
+
+  const approvals = target.votes.filter((v) => v.decision === "approve").length;
+  const rejections = target.votes.filter((v) => v.decision === "reject").length;
+  if (approvals >= 2) {
+    target.status = "certified";
+  } else if (rejections >= 2) {
+    target.status = "rejected";
+  }
+
+  return target;
+}

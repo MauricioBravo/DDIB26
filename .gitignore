@@ -50,6 +50,7 @@ id_ed25519*
 # claude code - personal/local, not shared with the team
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+CLAUDE.local.md
 
 # editor / OS
 .vscode/

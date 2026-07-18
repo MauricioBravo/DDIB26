@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 type Role = "company" | "juror";
@@ -23,6 +24,7 @@ const ROLE_COPY: Record<Role, { label: string; description: string; email: strin
 const VALID_PASSWORD = "1234";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [role, setRole] = useState<Role>("company");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,6 +36,10 @@ export default function LoginPage() {
     const expected = ROLE_COPY[role].email;
     if (email.trim().toLowerCase() === expected && password === VALID_PASSWORD) {
       setError(null);
+      if (role === "juror") {
+        router.push("/dao");
+        return;
+      }
       setSignedInAs(role);
     } else {
       setError("Those credentials don't match this role. Check the demo credentials below.");
