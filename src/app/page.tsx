@@ -43,21 +43,23 @@ export default function Home() {
         className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,_var(--sage)_0%,_transparent_55%)] opacity-70 dark:opacity-20"
       />
 
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-8 sm:px-10">
-        <span className="font-heading text-lg tracking-tight text-primary">
+      <header className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-6 py-8 sm:px-10">
+        <span className="hidden font-mono text-[10px] uppercase leading-snug tracking-widest text-muted-foreground sm:block">
+          DDIB26
+          <br />
+          Blockchain 2026
+        </span>
+
+        <span className="font-heading text-xl tracking-tight text-primary">
           GreenProof
         </span>
-        <nav className="flex items-center gap-6">
-          <span className="hidden font-mono text-xs uppercase tracking-widest text-muted-foreground sm:inline">
-            Deep Dive into Blockchain — 2026
-          </span>
-          <Link
-            href="/login"
-            className="font-mono text-xs uppercase tracking-widest text-primary hover:text-accent"
-          >
-            Log in
-          </Link>
-        </nav>
+
+        <Link
+          href="/login"
+          className="justify-self-end border border-primary px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+        >
+          Log in
+        </Link>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 sm:px-10">
