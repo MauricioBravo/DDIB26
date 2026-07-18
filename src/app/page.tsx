@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const steps = [
   {
     n: "01",
@@ -45,9 +47,17 @@ export default function Home() {
         <span className="font-heading text-lg tracking-tight text-primary">
           GreenProof
         </span>
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Deep Dive into Blockchain — 2026
-        </span>
+        <nav className="flex items-center gap-6">
+          <span className="hidden font-mono text-xs uppercase tracking-widest text-muted-foreground sm:inline">
+            Deep Dive into Blockchain — 2026
+          </span>
+          <Link
+            href="/login"
+            className="font-mono text-xs uppercase tracking-widest text-primary hover:text-accent"
+          >
+            Log in
+          </Link>
+        </nav>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 sm:px-10">

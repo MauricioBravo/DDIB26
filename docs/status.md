@@ -8,6 +8,7 @@ Living document. Update it in the same commit as any change that finishes, start
 - Next.js (App Router) + TypeScript + Tailwind scaffolded, shadcn/ui initialized with Palette A and custom typography (Fraunces/Work Sans/JetBrains Mono) instead of the default theme.
 - `frontend-design` skill installed at project scope.
 - Hola-mundo landing page (`src/app/page.tsx`) live, verifying the deploy pipeline end to end.
+- Second screen: `/login` (`src/app/login/page.tsx`) — simulated login with a role switch (Company / DAO Juror), hardcoded demo credentials, no real auth yet. Linked from the "Log in" nav item on the landing page.
 - Docker: full containerized dev environment (`docker-compose.yml`) and multi-stage production build (`Dockerfile`, `docker-compose.prod.yml`).
 - CI/CD: GitHub Actions (`.github/workflows/deploy.yml`) deploys to the Oracle Cloud instance on every push to `main`. See `docs/deploy.md`.
 - Nothing else is wired up yet: no Firebase, no Firestore, no Cloudinary, no Cardano/Lucid Evolution, no real app routes or data model. Everything below is still to do.
@@ -16,7 +17,8 @@ Living document. Update it in the same commit as any change that finishes, start
 
 Routes/screens implied by the flow in `docs/project-brief.md` §3:
 
-- [ ] Auth screens (sign up / log in) for two roles: company and verifier, backed by Firebase Authentication.
+- [x] Login screen with a role switch (Company / DAO Juror) — simulated only (`src/app/login/page.tsx`), hardcoded credentials, no session/Firebase yet.
+- [ ] Replace simulated login with real Firebase Authentication (email/password at minimum), for company, verifier, and juror roles.
 - [ ] Company dashboard: submit new evidence (photo upload + GPS location), see status of submitted cases (pending / verified / rejected with jury comments), see own certified actions.
 - [ ] Verifier view: see assigned case(s) (rotation-assigned, simulated by one team member for the PoC), upload their own evidence for a case.
 - [ ] Jury/DAO voting interface: simulated with three test wallets, simple approve/reject + comment form per case, shows both pieces of evidence side by side.
