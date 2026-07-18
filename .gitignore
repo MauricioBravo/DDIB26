@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# secrets / keys - never commit these
+*.key
+*serviceAccount*.json
+*service-account*.json
+id_rsa*
+id_ed25519*
+
+# claude code - personal/local, not shared with the team
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# editor / OS
+.vscode/
+.idea/
