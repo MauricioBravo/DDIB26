@@ -46,11 +46,9 @@ export default function Home() {
       <header className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-6 py-8 sm:px-10">
         <span className="hidden font-mono text-[10px] uppercase leading-snug tracking-widest text-muted-foreground sm:block">
           DDIB26
-          <br />
-          Blockchain 2026
         </span>
 
-        <span className="font-heading text-xl tracking-tight text-primary">
+        <span className="font-heading text-[20px] text-xl tracking-tight text-primary">
           GreenProof
         </span>
 
