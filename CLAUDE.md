@@ -19,7 +19,7 @@ Blockchain-verified proof of corporate environmental action (trees planted, PoC 
 - **Database**: Firestore
 - **Evidence photos**: Cloudinary (unsigned preset, jpg/jpeg/png only, 5MB max)
 - **Blockchain**: Cardano Preprod testnet via Lucid Evolution + Blockfrost
-- **Deploy target**: self-hosted server (public IP), Docker + docker compose, Nginx reverse proxy, Let's Encrypt/Certbot
+- **Deploy target**: Oracle Cloud free-tier instance (ARM/aarch64, Santiago), Docker + docker compose, Nginx reverse proxy, Let's Encrypt/Certbot once a domain exists — see `docs/deploy.md`
 - **CI/CD**: GitHub Actions, auto-deploy on push to `main`
 
 ## Design
@@ -41,9 +41,9 @@ Defined as CSS variables / Tailwind theme tokens in `src/app/globals.css` — us
 ## Branch strategy
 
 - `main` — protected, auto-deploys to production on every push. Never push directly.
-- `dev` — integration branch, merge feature branches here first.
-- `feature/<name>-<short-desc>` — one branch per person per piece of work, e.g. `feature/timileyin-evidence-upload`.
-- Open a PR into `dev` (or `main` for hotfixes) and get it reviewed before merging.
+- `dev` — integration branch, merge personal branches here first.
+- `mauricio` and `timileyin` — one persistent personal branch per person. **If you are Claude Code working in this repo, check `git branch --show-current` and keep working on whichever of these two is currently checked out — do not switch to the other person's branch, and do not push directly to `dev` or `main`.** Rebase/merge from `dev` periodically to stay current; open a PR into `dev` when a piece of work is ready for review.
+- Short-lived `feature/<name>-<short-desc>` branches off a personal branch are fine for a specific chunk of work, e.g. `feature/timileyin-evidence-upload`.
 
 ## Commands
 
