@@ -22,7 +22,7 @@ export default function DaoDocketPage() {
   return (
     <div className="flex-1 bg-background text-foreground">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-8 sm:px-10">
-        <Link href="/" className="font-heading text-lg tracking-tight text-primary">
+        <Link href="/" className="font-heading text-2xl tracking-tight text-primary">
           GreenProof
         </Link>
         <div className="flex items-center gap-6">
@@ -38,8 +38,8 @@ export default function DaoDocketPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 sm:px-10">
-        <section className="border-t border-border py-10 sm:py-14">
+      <main className="mx-auto max-w-6xl border-t border-border px-6 sm:px-10">
+        <section className="pt-6 pb-4">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             The docket
           </p>
@@ -49,7 +49,7 @@ export default function DaoDocketPage() {
         </section>
 
         {featured && (
-          <section className="border-t border-border py-10 sm:py-14">
+          <section className="pt-2 pb-4">
             <p className="font-mono text-xs uppercase tracking-widest text-accent">
               Newest submission
             </p>
@@ -79,7 +79,7 @@ export default function DaoDocketPage() {
         )}
 
         {rest.length > 0 && (
-          <section className="border-t border-border py-10 sm:py-14">
+          <section className="pt-2 pb-4">
             <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               Also pending
             </p>
@@ -112,7 +112,7 @@ export default function DaoDocketPage() {
         )}
 
         {pending.length === 0 && (
-          <section className="border-t border-border py-16 text-center">
+          <section className="py-8 text-center">
             <p className="font-mono text-sm text-muted-foreground">
               No cases waiting on a vote right now.
             </p>
@@ -120,7 +120,7 @@ export default function DaoDocketPage() {
         )}
 
         {resolved.length > 0 && (
-          <section className="border-t border-border py-10 sm:py-14">
+          <section className="pt-4 pb-8">
             <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               Resolved
             </p>

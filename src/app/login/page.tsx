@@ -55,7 +55,7 @@ export default function LoginPage() {
   return (
     <div className="flex-1 bg-background text-foreground">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-8 sm:px-10">
-        <Link href="/" className="font-heading text-lg tracking-tight text-primary">
+        <Link href="/" className="font-heading text-2xl tracking-tight text-primary">
           GreenProof
         </Link>
         <Link

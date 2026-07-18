@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 const steps = [
   {
@@ -48,7 +49,7 @@ export default function Home() {
           DDIB26
         </span>
 
-        <span className="font-heading text-[20px] text-xl tracking-tight text-primary">
+        <span className="font-heading text-2xl tracking-tight text-primary sm:text-3xl">
           GreenProof
         </span>
 
@@ -128,7 +129,14 @@ export default function Home() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-10 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-10">
-          <span>GreenProof — independent, on-chain proof of environmental action.</span>
+          <span className="inline-flex items-center gap-2">
+            <span
+              aria-hidden
+              className="mark-icon h-4 w-4 shrink-0 text-forest"
+              style={{ "--mark-icon-src": "url(/shield-mark.png)" } as CSSProperties}
+            />
+            GreenProof — independent, on-chain proof of environmental action.
+          </span>
           <span className="font-mono">Cardano Preprod · Lucid Evolution · Blockfrost</span>
         </div>
       </footer>

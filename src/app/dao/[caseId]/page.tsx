@@ -26,7 +26,7 @@ export default async function CasePage({
   return (
     <div className="flex-1 bg-background text-foreground">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-8 sm:px-10">
-        <Link href="/" className="font-heading text-lg tracking-tight text-primary">
+        <Link href="/" className="font-heading text-2xl tracking-tight text-primary">
           GreenProof
         </Link>
         <Link
@@ -37,8 +37,8 @@ export default async function CasePage({
         </Link>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 sm:px-10">
-        <section className="border-t border-border py-10 sm:py-14">
+      <main className="mx-auto max-w-6xl border-t border-border px-6 sm:px-10">
+        <section className="pt-6 pb-4">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             {caseData.id}
           </p>
@@ -53,11 +53,11 @@ export default async function CasePage({
           </p>
         </section>
 
-        <section className="border-t border-border py-10 sm:py-14">
+        <section className="pt-2 pb-4">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Evidence
           </p>
-          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="border border-dashed border-border p-6">
               <p className="font-mono text-xs uppercase tracking-widest text-accent">
                 Exhibit A &middot; Company
@@ -99,7 +99,7 @@ export default async function CasePage({
           </div>
         </section>
 
-        <section className="border-t border-border py-10 sm:py-14">
+        <section className="pt-2 pb-8">
           <VotePanel initialCase={caseData} />
         </section>
       </main>

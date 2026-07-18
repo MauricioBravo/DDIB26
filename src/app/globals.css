@@ -158,3 +158,19 @@
     @apply font-heading;
   }
 }
+
+/* Recolors a transparent-alpha PNG mark to a solid currentColor fill, so
+   raster assets stay on the Palette A token system instead of their own
+   baked-in color. */
+.mark-icon {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask-image: var(--mark-icon-src);
+  mask-image: var(--mark-icon-src);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
