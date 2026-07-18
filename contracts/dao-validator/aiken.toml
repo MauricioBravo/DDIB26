@@ -1,0 +1,11 @@
+name = "greenproof/dao"
+version = "0.0.0"
+compiler = "v1.1.23"
+plutus = "v3"
+license = "Apache-2.0"
+description = "GreenProof DAO 2-of-3 jury voting validator (Plutus V3, Aiken)"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "v3.1.0"
+source = "github"

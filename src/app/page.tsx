@@ -61,6 +61,21 @@ export default function Home() {
         </Link>
       </header>
 
+      <nav className="mx-auto flex max-w-6xl items-center justify-center gap-8 px-6 pb-8 sm:px-10">
+        <a
+          href="#how-it-works"
+          className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+        >
+          How it works
+        </a>
+        <Link
+          href="/companies"
+          className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Companies
+        </Link>
+      </nav>
+
       <main className="mx-auto max-w-6xl px-6 sm:px-10">
         <section className="grid grid-cols-1 gap-10 border-t border-border py-16 sm:py-24 md:grid-cols-[1.4fr_1fr]">
           <div>
@@ -103,7 +118,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border-t border-border py-16 sm:py-24">
+        <section id="how-it-works" className="border-t border-border py-16 sm:py-24">
           <h2 className="font-heading text-2xl text-primary sm:text-3xl">
             How it works
           </h2>

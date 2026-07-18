@@ -123,7 +123,9 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
             "GreenProof DAO vote",
             `case:${caseData.id}`,
             `company:${caseData.company}`,
-            `decision:${decision}`,
+            `actionType:${caseData.actionType}`,
+            `quantity:${caseData.quantity}`,
+            `vote:${decision}`,
           ],
         })
         .complete();
