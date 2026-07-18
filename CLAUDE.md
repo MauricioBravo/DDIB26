@@ -25,7 +25,7 @@ Blockchain-verified proof of corporate environmental action (trees planted, PoC 
 
 ## Design
 
-Do not default to the generic "AI-made" shadcn look (cream/terracotta, black/acid-green, or thin-line newspaper layouts). Commit to a distinctive aesthetic before writing UI code — the `frontend-design` skill is installed in this repo for that purpose, use it for any new page or component.
+Do not default to the generic "AI-made" shadcn look (cream/terracotta, black/acid-green, or thin-line newspaper layouts). Before writing UI code for any new page or non-trivial component, explicitly invoke the `frontend-design` skill (it's enabled for this project via `.claude/settings.json` — do not skip it or rely on it auto-triggering, invoke it directly) and follow its process: commit to a distinctive aesthetic on top of the Palette A tokens and typography below, don't just settle for the first idea.
 
 Palette A (natural/earthy — selected, see `docs/project-brief.md` §15):
 
