@@ -2,6 +2,8 @@
 
 Blockchain-verified proof of corporate environmental action (trees planted, PoC scope), certified by an independent verifier and a rotating DAO jury, minted as a Cardano native token. Full spec: `docs/project-brief.md`.
 
+Repo is public (made public specifically to unlock free GitHub branch protection on `main` — see below).
+
 @AGENTS.md
 
 ## Hard rules for this repo
@@ -41,7 +43,7 @@ Defined as CSS variables / Tailwind theme tokens in `src/app/globals.css` — us
 
 ## Branch strategy
 
-- `main` — protected, auto-deploys to production on every push. Only ever updated by merging from `dev` (PR or fast-forward after review), never a direct push of new work.
+- `main` — GitHub branch protection is actually enforced here (not just this document): a passing `build` status check is required, force-push and deletion are disabled, and 0 human approvals are required (no review bottleneck). **The repo owner (Mauricio) is exempt from the "require a pull request" restriction and can fast-forward/push directly once the checklist below is satisfied. Anyone else (Timileyin) is not exempt — a direct push to `main` will simply be rejected by GitHub, not just discouraged by convention.** Non-exempt contributors must open a PR into `main`; once the `build` check passes, merge it yourself, no need to wait for anyone's approval.
 - `dev` — integration branch, personal branches merge here first.
 - `mauricio` and `timileyin` — one persistent personal branch per person. **If you are Claude Code working in this repo, check `git branch --show-current` and keep working on whichever of these two is currently checked out — do not switch to the other person's branch.** Rebase/merge from `dev` periodically to stay current; open a PR into `dev` when a piece of work is ready for review.
 - Short-lived `feature/<name>-<short-desc>` branches off a personal branch are fine for a specific chunk of work, e.g. `feature/timileyin-evidence-upload`.
@@ -65,8 +67,10 @@ This triggers a production deploy, so treat it deliberately, not as a rubber-sta
 
 1. Run the sync-safety checklist above first — no unseen divergence, diff reviewed, build/lint clean on `dev`.
 2. Confirm `docs/status.md` already reflects whatever is being promoted (it should have been updated in the commit that made the change, per the hard rule above).
-3. If all of that checks out, fast-forwarding `main` to `dev` and pushing is fine without asking permission for every single promotion — but say clearly what's being promoted and why it's safe (e.g. "no divergence, build/lint clean, status doc up to date").
-4. If anything is uncertain — a failing build, an unreviewed diff, unclear scope of what changed — stop and flag it instead of pushing to `main`.
+3. If all of that checks out:
+   - **If you are the repo owner (Mauricio):** fast-forwarding `main` to `dev` and pushing directly is fine without asking permission for every single promotion — but say clearly what's being promoted and why it's safe (e.g. "no divergence, build/lint clean, status doc up to date").
+   - **If you are not the repo owner (Timileyin):** open a PR from `dev` (or your personal branch) into `main`. GitHub will run the required `build` check automatically; once it's green, merge the PR yourself — no approval from Mauricio is required, don't wait around for one.
+4. If anything is uncertain — a failing build, an unreviewed diff, unclear scope of what changed — stop and flag it instead of pushing/merging to `main`.
 
 ## Commands
 
@@ -83,6 +87,8 @@ docker compose up --build     # full containerized dev environment, hot reload v
 ```
 
 ## Deploy
+
+`.github/workflows/ci.yml` runs lint + build on every pull request into `main`/`dev` — this is the required status check for `main` (see Branch strategy above).
 
 Push to `main` triggers `.github/workflows/deploy.yml`: GitHub Actions SSHes into the production server with a dedicated deploy key (repo secrets `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`), pulls latest, runs `docker compose -f docker-compose.prod.yml up --build -d` on the server. See `docs/deploy.md` for server-side setup (Nginx, Certbot, first-time key install).
 
