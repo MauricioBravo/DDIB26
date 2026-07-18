@@ -41,10 +41,21 @@ Defined as CSS variables / Tailwind theme tokens in `src/app/globals.css` — us
 
 ## Branch strategy
 
-- `main` — protected, auto-deploys to production on every push. Never push directly.
-- `dev` — integration branch, merge personal branches here first.
-- `mauricio` and `timileyin` — one persistent personal branch per person. **If you are Claude Code working in this repo, check `git branch --show-current` and keep working on whichever of these two is currently checked out — do not switch to the other person's branch, and do not push directly to `dev` or `main`.** Rebase/merge from `dev` periodically to stay current; open a PR into `dev` when a piece of work is ready for review.
+- `main` — protected, auto-deploys to production on every push. Only ever updated by merging from `dev` (PR or fast-forward after review), never a direct push of new work.
+- `dev` — integration branch, personal branches merge here first.
+- `mauricio` and `timileyin` — one persistent personal branch per person. **If you are Claude Code working in this repo, check `git branch --show-current` and keep working on whichever of these two is currently checked out — do not switch to the other person's branch.** Rebase/merge from `dev` periodically to stay current; open a PR into `dev` when a piece of work is ready for review.
 - Short-lived `feature/<name>-<short-desc>` branches off a personal branch are fine for a specific chunk of work, e.g. `feature/timileyin-evidence-upload`.
+
+### Sync safety — before pushing or propagating anywhere other than your own branch
+
+The two of you work in parallel and must not clobber each other's in-progress work. Before pushing to `dev`, `main`, or the *other person's* personal branch, always:
+
+1. `git fetch origin` first — never assume your local view of another branch is current.
+2. Compare before touching anything: `git log --oneline <target>..HEAD` (your new work) and `git log --oneline HEAD..origin/<target>` (anything already there that you don't have). If the second one is non-empty, stop — there's independent work you haven't seen.
+3. Only fast-forward/merge into `dev` or the other person's branch when it's a clean fast-forward. If it isn't (real divergence, unrelated in-progress work), do **not** force it through — leave that branch alone and let its owner merge/rebase it themselves, or resolve it together.
+4. Never force-push (`--force`/`--force-with-lease`) to `dev`, `main`, or either personal branch, under any circumstance.
+
+Concretely: if Timileyin has unrelated work in progress on `timileyin` that doesn't overlap with what you just built, push your own branch and `dev` as usual, but leave `timileyin` untouched until he's ready to merge `dev` into it himself.
 
 ## Commands
 
