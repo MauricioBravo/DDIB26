@@ -1,0 +1,160 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-heading);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Palette A tokens, referenced directly where the semantic tokens above
+     are not specific enough (e.g. deliberate use of sand or olive alone). */
+  --color-forest: var(--forest);
+  --color-olive: var(--olive);
+  --color-sage: var(--sage);
+  --color-sand: var(--sand);
+  --color-charcoal: var(--charcoal);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Palette A — natural / earthy, docs/project-brief.md §15 */
+  --forest: #2e5339;
+  --olive: #6b8e23;
+  --sage: #e8efe0;
+  --sand: #c9a76b;
+  --charcoal: #2b2b2b;
+
+  --background: #f7f8f4;
+  --foreground: var(--charcoal);
+  --card: #ffffff;
+  --card-foreground: var(--charcoal);
+  --popover: #ffffff;
+  --popover-foreground: var(--charcoal);
+  --primary: var(--forest);
+  --primary-foreground: #f7f8f4;
+  --secondary: var(--sage);
+  --secondary-foreground: var(--forest);
+  --muted: #eef1e8;
+  --muted-foreground: #5c6559;
+  --accent: var(--sand);
+  --accent-foreground: var(--charcoal);
+  --destructive: #a8432f;
+  --border: #dde3d4;
+  --input: #dde3d4;
+  --ring: var(--olive);
+  --chart-1: var(--forest);
+  --chart-2: var(--olive);
+  --chart-3: var(--sand);
+  --chart-4: #7a8f7d;
+  --chart-5: var(--charcoal);
+  --radius: 0.5rem;
+  --sidebar: var(--sage);
+  --sidebar-foreground: var(--charcoal);
+  --sidebar-primary: var(--forest);
+  --sidebar-primary-foreground: #f7f8f4;
+  --sidebar-accent: var(--sand);
+  --sidebar-accent-foreground: var(--charcoal);
+  --sidebar-border: #dde3d4;
+  --sidebar-ring: var(--olive);
+}
+
+.dark {
+  --forest: #4a7a5c;
+  --olive: #93b83f;
+  --sage: #1c2419;
+  --sand: #c9a76b;
+  --charcoal: #eceee7;
+
+  --background: #14180f;
+  --foreground: #eceee7;
+  --card: #1c2116;
+  --card-foreground: #eceee7;
+  --popover: #1c2116;
+  --popover-foreground: #eceee7;
+  --primary: #6fa682;
+  --primary-foreground: #14180f;
+  --secondary: #232a1d;
+  --secondary-foreground: #d7ddca;
+  --muted: #232a1d;
+  --muted-foreground: #a3ab97;
+  --accent: var(--sand);
+  --accent-foreground: #14180f;
+  --destructive: #d97757;
+  --border: #2c3424;
+  --input: #2c3424;
+  --ring: var(--olive);
+  --chart-1: #6fa682;
+  --chart-2: var(--olive);
+  --chart-3: var(--sand);
+  --chart-4: #8fa48f;
+  --chart-5: #eceee7;
+  --sidebar: #1c2116;
+  --sidebar-foreground: #eceee7;
+  --sidebar-primary: #6fa682;
+  --sidebar-primary-foreground: #14180f;
+  --sidebar-accent: var(--sand);
+  --sidebar-accent-foreground: #14180f;
+  --sidebar-border: #2c3424;
+  --sidebar-ring: var(--olive);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+}
