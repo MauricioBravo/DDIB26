@@ -76,6 +76,44 @@ Both of the above cost real debugging time (2026-07-18) -- see
 native minting policy, mint with CIP-25 metadata, submit, verify
 independently against the API).
 
+## Read fallback -- course-provided Blockfrost instance
+
+A teaching assistant (Guangyao Li) separately shared a real, self-hosted
+Blockfrost instance for this same network at:
+
+```
+http://130.60.24.200:3000
+```
+
+Confirmed (2026-07-18) to be **the same chain** as the Yaci Store instance
+above -- both returned the identical slot and block height at the same
+moment, and the same UTxO for our system signer. Two gotchas versus a
+normal public Blockfrost:
+
+- **No `/api/v0/` prefix** on this instance -- routes are mounted at root
+  (`GET /blocks/latest`, not `GET /api/v0/blocks/latest`, which 400s with
+  `"Invalid path"`). No `project_id` header needed either.
+- **No working `/tx/submit`** -- every path variant tried (`/tx/submit`,
+  `/tx/submit/cbor`, `/txs/submit`) returns the same `"Invalid path"` error.
+  This looks like a deliberate read-only mirror. **Use it only as a fallback
+  for reads, never for submission** -- Yaci Store (`:8080`) remains the only
+  way to actually submit a transaction.
+
+Mesh SDK's `BlockfrostProvider` supports a custom URL directly and works
+against this instance with no changes:
+
+```ts
+import { BlockfrostProvider } from "@meshsdk/core";
+const blockfrostFallback = new BlockfrostProvider("http://130.60.24.200:3000");
+```
+
+`scripts/mint-poc.mjs` wires this in as a read fallback: `fetchAddressUTxOs`,
+`fetchProtocolParameters`, and the tip lookup all try Yaci Store first and
+retry against this Blockfrost instance if that fails; `submitTx` always goes
+through Yaci Store. Re-ran the full mint end-to-end with this wrapper in
+place to confirm it doesn't break anything -- see the third row in the table
+below.
+
 ## Known addresses (public, non-secret)
 
 | Role | Address | Notes |
@@ -90,6 +128,7 @@ independently against the API).
 |---|---|---|---|
 | First mint test (cardano-cli, on the UZH node VM directly) | `b86c3936ba0e4fef0818b3b4ac830bec981338ddccba5a635a44de0a` | `6dc0f7605727d6c053d33bbe1bc57243753dc088df7de09d34a1cadd96757bf6` | Proved the on-chain mechanics work at all. Signer lived only on that VM. |
 | Second mint test (Mesh SDK + YaciProvider, from this repo, no SSH) | `ae7e85b4907f8162f7acd4eda27f72dcb1e2d4777c8a635d6dbfb756` | `52f5b2b45370e7d2196fd1b90a9bd71687d2a5ad08f204d6b2e3cb65a100fb8c` | Proves the real production path: backend builds+signs+submits directly over the internet. Both independently re-verified via direct `curl` against the API (not just trusted from script output). |
+| Third mint test (with the Blockfrost read-fallback wrapper wired in) | `bb45ef5c73372ee3330fdf2bb9714302c8b4642a937e9be64f5185b8` | `c3bab0164bc28b921b3a5be563e628926384cae14b7e55487b38a004141bea5c` | Confirms the fallback wrapper doesn't break the mint pipeline. |
 
 To inspect any of the above yourself: `GET /txs/{hash}` and
 `GET /txs/{hash}/metadata` against the API URL, or use

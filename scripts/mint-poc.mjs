@@ -5,6 +5,7 @@
 import {
   MeshWallet,
   YaciProvider,
+  BlockfrostProvider,
   resolvePaymentKeyHash,
   resolveNativeScriptHash,
   resolveNativeScriptHex,
@@ -15,11 +16,58 @@ import {
 // custom host must include that path segment too, or every request 404s
 // (silently swallowed to an empty array by the provider's own try/catch).
 const YACI_URL = "http://130.60.24.200:8080/api/v1/";
+// Read-only fallback: a real, course-provided self-hosted Blockfrost
+// instance on the SAME network (confirmed by identical slot/height at the
+// same moment as YACI_URL above -- see docs/uzh-network.md). No "/api/v0/"
+// prefix on this particular instance -- routes are mounted at root. It has
+// NO working /tx/submit (every path variant tried returns "Invalid path",
+// likely a deliberate read-only mirror), so it's only used as a fallback
+// for reads, never for submission -- YACI_URL remains the only submitter.
+const BLOCKFROST_FALLBACK_URL = "http://130.60.24.200:3000";
 const COMPANY_TEST_ADDRESS =
   "addr_test1vr7g3m8njs2fh40fxqc2s2vlvckcclt45ygjxats5xcampcyt2cs2";
 
+async function withReadFallback(label, primaryCall, fallbackCall) {
+  try {
+    return await primaryCall();
+  } catch (err) {
+    console.warn(
+      `[fallback] ${label} failed on Yaci Store (${err instanceof Error ? err.message : err}), retrying via the Blockfrost fallback...`,
+    );
+    return await fallbackCall();
+  }
+}
+
 async function main() {
-  const provider = new YaciProvider(YACI_URL);
+  const yaci = new YaciProvider(YACI_URL);
+  const blockfrostFallback = new BlockfrostProvider(BLOCKFROST_FALLBACK_URL);
+
+  // Duck-typed fetcher: reads fall back to Blockfrost if Yaci Store errors;
+  // submission always goes through Yaci Store (see note above).
+  const provider = {
+    fetchAddressUTxOs: (addr) =>
+      withReadFallback(
+        "fetchAddressUTxOs",
+        () => yaci.fetchAddressUTxOs(addr),
+        () => blockfrostFallback.fetchAddressUTxOs(addr),
+      ),
+    fetchProtocolParameters: () =>
+      withReadFallback(
+        "fetchProtocolParameters",
+        () => yaci.fetchProtocolParameters(),
+        () => blockfrostFallback.fetchProtocolParameters(),
+      ),
+    submitTx: (tx) => yaci.submitTx(tx),
+    getTip: () =>
+      withReadFallback(
+        "getTip",
+        () => yaci.get("/blocks/latest"),
+        async () => {
+          const res = await fetch(`${BLOCKFROST_FALLBACK_URL}/blocks/latest`);
+          return res.json();
+        },
+      ),
+  };
 
   const mnemonicEnv = process.env.SYSTEM_SIGNER_MNEMONIC;
   const mnemonic = mnemonicEnv ? mnemonicEnv.split(" ") : MeshWallet.brew();
@@ -62,7 +110,7 @@ async function main() {
     return;
   }
 
-  const tip = await provider.get("/blocks/latest");
+  const tip = await provider.getTip();
   const expirySlot = Number(tip.slot) + 259200; // ~3 days at slotLength=1s
   const keyHash = resolvePaymentKeyHash(address);
 
