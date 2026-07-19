@@ -143,10 +143,21 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
     }
 
     setVoteStatus("submitting");
+    let hash: string;
     try {
-      const hash = await wallet.submitTx(signedTx);
+      hash = await wallet.submitTx(signedTx);
       setTxHash(hash);
+    } catch (err) {
+      setVoteStatus("error");
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Transaction was rejected by the network.",
+      );
+      return;
+    }
 
+    try {
       const updated = await submitVote(
         caseData.id,
         walletAddress,
@@ -158,11 +169,14 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
       setVoteStatus("done");
       runSimulatedVotes(decision);
     } catch (err) {
+      // The blockchain transaction above already succeeded (hash is real and
+      // shown regardless of this branch) -- this failure is purely in our
+      // own bookkeeping (the in-memory case store), not the network.
       setVoteStatus("error");
       setErrorMessage(
-        err instanceof Error
-          ? err.message
-          : "Transaction was rejected by the network.",
+        `Your vote transaction was confirmed on-chain (hash above), but saving it to the case record failed: ${
+          err instanceof Error ? err.message : "unknown error"
+        }. Refresh the page -- if the case still shows as pending, note this tx hash for support.`,
       );
     }
   }
@@ -251,19 +265,24 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
             2. Cast your vote
           </p>
 
-          {alreadyResolved && voteStatus === "idle" ? (
+          {alreadyResolved && voteStatus === "idle" && !txHash ? (
             <p className="mt-3 text-sm text-muted-foreground">
               This case is already resolved. No further votes are needed.
             </p>
-          ) : voteStatus === "done" ? (
+          ) : voteStatus === "done" || (voteStatus === "error" && txHash) ? (
             <div className="mt-3">
               <p className="text-sm text-muted-foreground">
-                Your vote was signed and submitted as a real transaction.
+                {voteStatus === "done"
+                  ? "Your vote was signed and submitted as a real transaction."
+                  : "Your vote transaction was confirmed on-chain, but the app failed to record it -- see below."}
               </p>
               {txHash && (
                 <p className="mt-2 break-all font-mono text-xs text-primary">
                   Tx hash: {txHash}
                 </p>
+              )}
+              {voteStatus === "error" && errorMessage && (
+                <p className="mt-3 text-sm text-destructive">{errorMessage}</p>
               )}
             </div>
           ) : (

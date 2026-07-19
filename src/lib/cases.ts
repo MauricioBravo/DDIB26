@@ -192,6 +192,9 @@ export function castVote(
   if (target.votes.length >= 3) {
     return target;
   }
+  if (target.votes.some((v) => v.jurorId === vote.jurorId)) {
+    throw new Error(`Juror ${vote.jurorId} already voted on ${caseId}`);
+  }
 
   target.votes.push({ ...vote, castAt: new Date().toISOString() });
 
