@@ -127,6 +127,12 @@ export default function Home() {
         >
           Companies
         </Link>
+        <Link
+          href="/companies/rankings"
+          className="font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Rankings
+        </Link>
       </nav>
 
       <main className="mx-auto max-w-6xl px-6 sm:px-10">

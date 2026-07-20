@@ -81,7 +81,8 @@ Deliberately **not** computing a real hash (e.g. SHA-256) of uploaded evidence f
 To avoid two people (or their Claude Code sessions) building the same thing in parallel:
 
 - **Mauricio, in progress:** the company evidence-submission form (Frontend — company, item 1 below) and the verifier dashboard + evidence upload (Frontend — verifier, items 1-2 below). **Don't start these from another branch without checking in first** — touches `src/lib/cases.ts`, new `src/app/company/`, new `src/app/verifier/`.
-- **Timi:** the company ranking/leaderboard (Frontend — company ranking below) — **all five items done**, see "Just built" below. Only touched `src/lib/companies.ts` and `src/app/companies/*` (nothing in `cases.ts`, `company/`, `verifier/`, or `dao/`), so no overlap with Mauricio's in-progress work. One item left for Mauricio: a nav link into `/companies/rankings` from the redesigned landing page (`src/app/page.tsx`), left out of this branch on purpose to avoid touching his file.
+- **Timi:** company ranking/leaderboard — **done and merged** (PR #2, 2026-07-20), see "Just built" below. Mauricio added the landing-page nav link into `/companies/rankings` afterward (`src/app/page.tsx`), the one piece Timi's branch deliberately left out. Scope call: the CO2/recycled-material categories (beyond `project-brief.md` §8's "trees planted only") are being kept, not trimmed — confirmed by Mauricio 2026-07-20.
+- **Timi, next task:** not yet assigned — pick from "Frontend — transaction status" below (the reusable status component + vote confirmation polish + verify-on-chain button only touch `vote-panel.tsx` and new files, no overlap with Mauricio's in-progress work).
 
 Update this note (or delete it) once either piece lands, so it doesn't go stale.
 
