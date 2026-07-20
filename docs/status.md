@@ -76,6 +76,15 @@ On the vote's metadata: even though there is currently no convenient way to re-q
 
 Deliberately **not** computing a real hash (e.g. SHA-256) of uploaded evidence files for this PoC — extra complexity not worth it at this stage, per Mauricio's call. `evidenceHash` in mint/vote metadata stays a placeholder value, same as in `scripts/mint-poc.mjs` today. Multiple evidence files per case (several photos plus a document) are still in scope and are NOT considered complex: Cloudinary's `auto` resource type accepts images and non-images (e.g. PDF) through the same unsigned upload endpoint with no branching logic needed, so "multiple files, mixed types" only means looping over a file list and collecting the returned URLs into an array — see the evidence-upload TODO item below for the concrete shape.
 
+## Who's doing what right now (2026-07-20)
+
+To avoid two people (or their Claude Code sessions) building the same thing in parallel:
+
+- **Mauricio, in progress:** the company evidence-submission form (Frontend — company, item 1 below) and the verifier dashboard + evidence upload (Frontend — verifier, items 1-2 below). **Don't start these from another branch without checking in first** — touches `src/lib/cases.ts`, new `src/app/company/`, new `src/app/verifier/`.
+- **Timi, assigned:** the company ranking/leaderboard (Frontend — company ranking, all 4 items below). Deliberately picked because it shares zero files with what Mauricio is doing — only touches `src/lib/companies.ts` and `src/app/companies/*`, nothing in `cases.ts`, `company/`, `verifier/`, or `dao/`. Safe to start immediately after pulling, no coordination needed.
+
+Update this note (or delete it) once either piece lands, so it doesn't go stale.
+
 ## TODO, in priority order (2026-07-20)
 
 Reordered from a flat list to reflect what actually blocks a working end-to-end PoC demo vs. what's nice-to-have. Login/auth and company registration are explicitly deprioritized (Mauricio's call, 2026-07-20) — the existing simulated `/login` is good enough to keep demoing with for now. Within each group, most important first.
