@@ -72,39 +72,85 @@ On the vote's metadata: even though there is currently no convenient way to re-q
   - Footer and hero "Scope" copy also corrected: no longer say "Cardano Preprod · Lucid Evolution · Blockfrost" (never true for this project's actual network) — now says "UZH Cardano testnet · Mesh SDK".
 - Verified: `npm run build` and `npm run lint` clean; visually checked with `agent-browser` at both desktop and mobile viewports.
 
-## Frontend TODO
+## Scope decision: no evidence file hashing for the PoC (2026-07-20)
 
-Routes/screens implied by the flow in `docs/project-brief.md` §3:
+Deliberately **not** computing a real hash (e.g. SHA-256) of uploaded evidence files for this PoC — extra complexity not worth it at this stage, per Mauricio's call. `evidenceHash` in mint/vote metadata stays a placeholder value, same as in `scripts/mint-poc.mjs` today. Multiple evidence files per case (several photos plus a document) are still in scope and are NOT considered complex: Cloudinary's `auto` resource type accepts images and non-images (e.g. PDF) through the same unsigned upload endpoint with no branching logic needed, so "multiple files, mixed types" only means looping over a file list and collecting the returned URLs into an array — see the evidence-upload TODO item below for the concrete shape.
 
-- [x] Login screen with a role switch (Company / DAO Juror) — simulated only (`src/app/login/page.tsx`), hardcoded credentials, no session/Firebase yet.
-- [ ] Replace simulated login with real Firebase Authentication (email/password at minimum), for company, verifier, and juror roles.
-- [ ] Company dashboard: submit new evidence (photo upload + GPS location), see status of submitted cases (pending / verified / rejected with jury comments), see own certified actions.
-- [ ] Verifier view: see assigned case(s) (rotation-assigned, simulated by one team member for the PoC), upload their own evidence for a case.
-- [x] Jury/DAO voting interface (`/dao`, `/dao/[caseId]`) — **scope decision (2026-07-18): more ambitious than the original PoC doc.** `docs/project-brief.md` §8 describes jury voting as fully simulated/off-chain (no wallet signing). We're instead building **real CIP-30 wallet voting** — done for this pass as a wallet-signed message (compatibility check), see "Just built" above. Still open: swap that for an actual signed testnet transaction once the real Aiken validator (see "Just built" above) is wired in — see "Next up" below.
-- [x] Public dashboard: per-company public profile, verified achievements by category, badges, rankings (e.g. "Top 3 Carbon Reducers"). No auth required. **(2026-07-18, `/companies`, `/companies/[slug]` — see "Just built" above.) Static/illustrative data, not yet wired to live case data — see the Firestore item below.**
-- [ ] Wire all of the above to real Firestore data (currently nothing reads/writes Firestore, and `src/lib/companies.ts` is a static illustrative dataset, not derived from `cases.ts` vote outcomes).
-- [ ] Replace/extend the current landing page with real navigation into the above once they exist, keep Palette A + typography consistent (no default shadcn theme, see `CLAUDE.md`).
+## TODO, in priority order (2026-07-20)
 
-## Backend TODO
+Reordered from a flat list to reflect what actually blocks a working end-to-end PoC demo vs. what's nice-to-have. Login/auth and company registration are explicitly deprioritized (Mauricio's call, 2026-07-20) — the existing simulated `/login` is good enough to keep demoing with for now. Within each group, most important first.
 
-- [ ] Firebase project: create it, enable Authentication (email/password at minimum) and Firestore, generate a service account for server-side access.
-- [ ] Firestore data model: `companies`, `verifiers`, `cases` (evidence + status + jury result), `jurors`/DAO pool, `certifications` (minted token records). Define rotation fields (last-assigned verifier/juror) to support the rotation rules in §5.
-- [ ] Cloudinary: unsigned upload preset restricted to jpg/jpeg/png, 5MB max, no custom public IDs (per §16).
-- [ ] Server-side logic: company registration triggers custodial Cardano wallet generation (invisible to the user).
-- [ ] Verifier rotation logic: assign a verifier per new case, excluding whoever last inspected that same company.
-- [ ] Jury rotation logic: assign three jurors per case from the DAO pool; two-of-three approval certifies, otherwise the case returns with comments and can be resubmitted.
-- [~] Cardano integration — **superseded 2026-07-18**: not Blockfrost/Preprod/Lucid Evolution, see "Just built" above. Real UZH testnet, Mesh SDK (`@meshsdk/core`, already installed) + its `YaciProvider` against the public Yaci Store API (with a Blockfrost read fallback, see `docs/uzh-network.md`). Time-locked single-sig minting policy, funded backend system signer, and a real end-to-end mint are all proven working (`scripts/mint-poc.mjs`). Still open: extract that proof into the actual `src/lib/mint.ts` module (metadata schema per §4: company ID, action type, quantity, date, evidence hashes, verifier ID, jury result).
-- [ ] On 2-of-3 jury approval, trigger the minting script, then write the resulting transaction hash back to Firestore. Depends on the item above plus a real Firestore/case store (currently `castVote` in `src/lib/cases.ts` has no mint hook).
-- [ ] Public dashboard reads: aggregate certified actions per company/category for badges and rankings.
+### Backend
 
-## Next up
+1. **Hook the proven mint into `castVote` on 2-of-3 approval.** The single biggest gap between "isolated proof" and "actual demo flow" — everything else (`scripts/mint-poc.mjs`, the funded system signer, the Yaci Store + Blockfrost-fallback pipeline) is already proven working, this just wires it in.
+   Files: new `src/lib/mint.ts` (extracted from `scripts/mint-poc.mjs`, kept as-is for reference), `src/lib/cases.ts` (`castVote`), `src/app/dao/actions.ts`.
+2. Record the resulting mint TxID on the case.
+   Files: `src/lib/cases.ts` (new `mintTxHash` field on `Case`).
+3. Cloudinary preset using `auto` resource type, so both images and PDFs upload through the same unsigned endpoint (see the scope decision above — no hashing, no per-type branching needed).
+   Files: none in-repo (Cloudinary console setting), new env var for the preset name/cloud name.
+4. Verifier and jury rotation logic — can start simple (pick from a fixed pool) for the PoC.
+   Files: new `src/lib/rotation.ts`.
+5. Jury rejection comment field + a `resubmitCase` action, so a rejected case can actually be sent back per `project-brief.md` §5 ("returns with comments... can be resubmitted") instead of just dead-ending.
+   Files: `src/lib/cases.ts` (`JurorVote.comment`, new `resubmitCase` function, likely a new case status), `src/app/dao/[caseId]/vote-panel.tsx`, `src/app/dao/actions.ts`.
+6. Wire the real Aiken 2-of-3 validator (`contracts/dao-validator/`) into `/dao`, replacing the current real-vote-plus-two-simulated-votes design. Bigger technical lift than the rest above, and we already have something demoable without it, so it ranks lower.
+   Files: `src/app/dao/[caseId]/vote-panel.tsx`, `contracts/dao-validator/` (compile, get script CBOR), new `src/lib/dao-contract.ts`.
+7. **Deprioritized per Mauricio (2026-07-20):** Firebase project + service account, Firestore data model, real company registration, wallet-on-registration, real Firebase Authentication replacing `/login`.
+   Files (when picked up): new `src/lib/firebase.ts`, `src/lib/firebase-admin.ts`, `src/app/login/page.tsx`, new `src/app/register/page.tsx`, new `src/lib/wallet-provisioning.ts`, new `firebase-service-account.json` (never commit — already covered by `.gitignore`'s `*serviceAccount*.json` pattern).
 
-1. **Turn the mint proof into real product code**: `src/lib/mint.ts` (Mesh SDK `MeshTxBuilder` + `MeshWallet` + `YaciProvider`, pattern already proven in `scripts/mint-poc.mjs` — see `docs/uzh-network.md`), and a mint hook inside `castVote` (`src/lib/cases.ts`) that fires on 2-of-3 approval and records the resulting TxID on the case.
-2. Company evidence-submission screen, wired to `addCase()` in `src/lib/cases.ts` (already built with this in mind — no store changes should be needed, just a form that calls it).
-3. Verifier view (rotation-assigned case, upload their own evidence).
-4. Real Firebase Authentication to replace the simulated `/login`.
-5. Wire the public `/companies` pages to real case/Firestore data instead of the static illustrative dataset in `src/lib/companies.ts`, once Firestore and the mint hook above exist.
-6. Wire the real Aiken 2-of-3 validator (`contracts/dao-validator/`) into `/dao` so all three jury votes are genuinely on-chain, replacing the current real-vote-plus-two-simulated-votes design.
+### Frontend — company
+
+1. Evidence-submission form: multiple photos plus an optional document (PDF), all through the Cloudinary `auto` preset above, no hashing (see scope decision). This is the missing link in the brief's flow (§3 step 2) — nothing today lets a company submit real evidence at all.
+   Files: new `src/app/company/page.tsx`, new `src/app/company/actions.ts` (calls the existing `addCase()` in `src/lib/cases.ts`), `src/lib/cases.ts` (`Evidence` changes from a single field to an array of `{url, type}`).
+2. View of own cases and their status (pending/certified/rejected + jury comment), closing the loop visually for the company side.
+   Files: new `src/app/company/cases/page.tsx`.
+3. Resubmit action from that view, once the backend item above exists.
+   Files: same file as above.
+
+### Frontend — verifier
+
+This entire role is currently a hard blocker — there is no verifier login, dashboard, or evidence upload of any kind today.
+
+1. Dashboard showing the case assigned by rotation. Without this, no verifier flow exists at all.
+   Files: new `src/app/verifier/page.tsx`.
+2. Evidence upload for that case (their own photos/document, same `auto`-preset pattern as the company side) — this is what actually completes the "independent verification" step in the brief.
+   Files: new `src/app/verifier/[caseId]/page.tsx`.
+3. Show that evidence next to the company's in `/dao/[caseId]` so the jury can actually review it (today those are hardcoded "Photo pending Cloudinary" placeholder tiles).
+   Files: `src/app/dao/[caseId]/page.tsx`.
+4. Mobile-friendly pass — verifiers are realistically on a phone, standing at the site. Polish, not a blocker.
+   Files: same as items 1-2, styling only.
+5. **Deprioritized along with login/auth generally:** add a third "Verifier" role to the login role switch. A direct link to `/verifier` without full auth gating is good enough for the PoC in the meantime.
+   Files: `src/app/login/page.tsx`.
+
+### Frontend — transaction status (vote and mint)
+
+1. Mint confirmation screen with policy ID, TxID, block, and destination address. Once the backend mint hook (above) lands, this is the single strongest moment of the demo, so it's worth building well first.
+   Files: new component inside `src/app/company/cases/page.tsx` (or its own file), depends on `src/lib/mint.ts`.
+2. Reusable transaction-status component (building → signing → submitting → confirmed/error, with a loading animation on the in-progress states), shared between vote and mint.
+   Files: new `src/components/tx-status.tsx`.
+3. Vote: actually confirm the transaction landed in a block (today we only show the hash right after submit, we never confirm inclusion), and show that block once confirmed.
+   Files: `src/app/dao/[caseId]/vote-panel.tsx`.
+4. Vote: show the signer's wallet address in the confirmation block (already held in state, just not displayed there).
+   Files: same file as above.
+5. "Verify on-chain" button that re-queries the API directly and shows the raw response — reinforces the "don't just trust our frontend" story, but not required for a working demo.
+   Files: new `src/lib/verify-onchain.ts` (endpoints documented in `docs/uzh-network.md`), used in `vote-panel.tsx` and the mint screen above.
+
+### Frontend — company ranking
+
+Today `/companies` is a flat, unordered, unfiltered list — despite the "Public dashboard" TODO item historically being marked done, an actual ranking/leaderboard does not exist yet.
+
+1. Add real numeric fields to `src/lib/companies.ts` (e.g. a numeric carbon-offset value, not just the display string "252 t CO2 / yr") — nothing can be sorted without this.
+   Files: `src/lib/companies.ts`.
+2. Ranking view with a podium treatment for top 1-3 and a plain list for the rest — the actual "indirect competition" deliverable from `project-brief.md` §3/§6.
+   Files: new `src/app/companies/rankings/page.tsx`, run through the `frontend-design` skill per `CLAUDE.md`.
+3. Filters by category (trees planted, carbon offset, etc.) and country.
+   Files: same file as above.
+4. Decide whether this replaces `/companies` or lives alongside it.
+   Files: `src/app/companies/page.tsx`.
+
+### Cross-cutting, not yet placed above
+
+- [ ] Wire `/companies` (whichever form it ends up in) to real case/Firestore data instead of the static illustrative dataset — depends on Firestore existing, which is now deprioritized, so this naturally comes later too.
+- [ ] Replace/extend the current landing page with real navigation into the above as they land, keeping Palette A + typography consistent (`CLAUDE.md`).
 
 ## Explicitly out of scope for the PoC (see `docs/project-brief.md` §8-9)
 
