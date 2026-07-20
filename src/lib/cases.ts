@@ -1,3 +1,5 @@
+import { mintCertificationToken } from "@/lib/mint";
+
 export type CaseStatus = "pending" | "certified" | "rejected";
 
 export type VoteDecision = "approve" | "reject";
@@ -16,6 +18,8 @@ export type Evidence = {
   capturedAt: string;
 };
 
+export type MintStatus = "pending" | "minted" | "failed";
+
 export type Case = {
   id: string;
   company: string;
@@ -26,6 +30,10 @@ export type Case = {
   verifierEvidence: Evidence & { verifierId: string };
   status: CaseStatus;
   votes: JurorVote[];
+  mintStatus?: MintStatus;
+  mintTxHash?: string;
+  mintPolicyId?: string;
+  mintError?: string;
 };
 
 export type NewCaseInput = Omit<Case, "id" | "submittedAt" | "status" | "votes">;
@@ -181,10 +189,10 @@ export function addCase(input: NewCaseInput): Case {
   return created;
 }
 
-export function castVote(
+export async function castVote(
   caseId: string,
   vote: Omit<JurorVote, "castAt">,
-): Case {
+): Promise<Case> {
   const target = cases.find((c) => c.id === caseId);
   if (!target) {
     throw new Error(`Unknown case: ${caseId}`);
@@ -200,10 +208,38 @@ export function castVote(
 
   const approvals = target.votes.filter((v) => v.decision === "approve").length;
   const rejections = target.votes.filter((v) => v.decision === "reject").length;
+  const justCertified = approvals >= 2 && target.status === "pending";
   if (approvals >= 2) {
     target.status = "certified";
   } else if (rejections >= 2) {
     target.status = "rejected";
+  }
+
+  // Only fire the mint once, the moment the case first crosses 2-of-3 --
+  // not on every subsequent vote call, and not for a case that was already
+  // certified before this call (target.status check above).
+  if (justCertified) {
+    target.mintStatus = "pending";
+    const verifierId = target.verifierEvidence.verifierId;
+    try {
+      const result = await mintCertificationToken({
+        caseId: target.id,
+        company: target.company,
+        actionType: target.actionType,
+        quantity: target.quantity,
+        verifierId,
+      });
+      target.mintStatus = "minted";
+      target.mintTxHash = result.txHash;
+      target.mintPolicyId = result.policyId;
+    } catch (err) {
+      // The vote itself already succeeded (2-of-3 reached) -- a mint
+      // failure shouldn't undo that or throw out of castVote. Same lesson
+      // as the vote-panel tx-hash bug fixed earlier: a downstream failure
+      // must never hide an upstream success.
+      target.mintStatus = "failed";
+      target.mintError = err instanceof Error ? err.message : "Unknown mint error";
+    }
   }
 
   return target;

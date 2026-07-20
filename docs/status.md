@@ -11,12 +11,13 @@ Living document. Update it in the same commit as any change that finishes, start
 - Second screen: `/login` (`src/app/login/page.tsx`) — simulated login with a role switch (Company / DAO Juror), hardcoded demo credentials, no real auth yet. Linked from the "Log in" nav item on the landing page. DAO Juror login now redirects to `/dao`; Company still gets the inline "not built yet" message.
 - DAO Juror voting dashboard (`/dao`, `/dao/[caseId]`) — see "Just built" below for detail.
 - Public companies directory (`/companies`) and per-company profile pages (`/companies/[slug]`) — no login required, linked from the landing page header. Static/illustrative data for now. See "Just built" below.
-- Minting architecture resolved, backend "system signer" wallet generated and funded, a real mint proven end-to-end from this repo with no SSH to any UZH server. See `docs/uzh-network.md` for the practical reference (endpoints, addresses, TxIDs, gotchas) and "Just built" below for the narrative.
+- **Minting is now wired into the live app, not just a standalone script.** `castVote` (`src/lib/cases.ts`) calls a real `src/lib/mint.ts` module the moment a case crosses 2-of-3, building/signing/submitting a genuine transaction on the UZH testnet -- proven with a real TxID, see "Just built" below. Backend "system signer" wallet funded, no SSH to any UZH server. See `docs/uzh-network.md` for the network reference.
 - Aiken 2-of-3 DAO voting contract source committed at `contracts/dao-validator/` (previously only existed outside the repo). Not yet wired into `/dao`.
-- Landing page (`src/app/page.tsx`) now has a "Build docket" section showing shipped vs. next-up work, and "How it works" was redesigned with a center spine connecting steps 01-06 in reading order (was an ambiguous 2-column grid before). See "Just built" below.
+- Landing page (`src/app/page.tsx`) has a "Build docket" section showing shipped vs. next-up work, and "How it works" was redesigned with a center spine connecting steps 01-06 in reading order. Company rankings (`/companies/rankings`) shipped by Timi, see "Just built" below.
+- Vote and mint confirmations now show real block confirmation and a loading state in between, not just an immediate hash -- see "Just built" below.
 - Docker: full containerized dev environment (`docker-compose.yml`) and multi-stage production build (`Dockerfile`, `docker-compose.prod.yml`).
 - CI/CD: GitHub Actions (`.github/workflows/deploy.yml`) deploys to the Oracle Cloud instance on every push to `main`. See `docs/deploy.md`.
-- Still not wired up: Firebase, Firestore, Cloudinary, company/verifier upload flow, and the actual mint-on-approval trigger (the mint pipeline itself is proven and working, it's just not called automatically from `castVote` yet). Everything below is still to do.
+- Still not wired up: Firebase, Firestore, Cloudinary, company/verifier upload flow. Everything below is still to do.
 
 ## Just built: DAO Juror voting dashboard (2026-07-18)
 
@@ -80,9 +81,9 @@ Deliberately **not** computing a real hash (e.g. SHA-256) of uploaded evidence f
 
 To avoid two people (or their Claude Code sessions) building the same thing in parallel:
 
-- **Mauricio, in progress:** the company evidence-submission form (Frontend — company, item 1 below) and the verifier dashboard + evidence upload (Frontend — verifier, items 1-2 below). **Don't start these from another branch without checking in first** — touches `src/lib/cases.ts`, new `src/app/company/`, new `src/app/verifier/`.
-- **Timi:** company ranking/leaderboard — **done and merged** (PR #2, 2026-07-20), see "Just built" below. Mauricio added the landing-page nav link into `/companies/rankings` afterward (`src/app/page.tsx`), the one piece Timi's branch deliberately left out. Scope call: the CO2/recycled-material categories (beyond `project-brief.md` §8's "trees planted only") are being kept, not trimmed — confirmed by Mauricio 2026-07-20.
-- **Timi, next task:** not yet assigned — pick from "Frontend — transaction status" below (the reusable status component + vote confirmation polish + verify-on-chain button only touch `vote-panel.tsx` and new files, no overlap with Mauricio's in-progress work).
+- **Mauricio, done today:** mint hook (backend items 1-2) and transaction-status/block-confirmation work (Frontend — transaction status, items 1-4) — see "Just built: mint hook" above. **Now starting:** the company evidence-submission form (Frontend — company, item 1 below) and the verifier dashboard + evidence upload (Frontend — verifier, items 1-2 below). **Don't start these from another branch without checking in first** — touches `src/lib/cases.ts`, new `src/app/company/`, new `src/app/verifier/`.
+- **Timi:** company ranking/leaderboard — **done and merged** (PR #2, 2026-07-20), see "Just built: company rankings" below. Scope call: the CO2/recycled-material categories (beyond `project-brief.md` §8's "trees planted only") are being kept, not trimmed — confirmed by Mauricio 2026-07-20.
+- **Timi, next task:** not yet assigned — the "verify on-chain" button (Frontend — transaction status, item 5) is the smallest remaining isolated item, or pick up the Cloudinary `auto` preset setup (Backend item 3) which unblocks Mauricio's evidence-upload work above.
 
 Update this note (or delete it) once either piece lands, so it doesn't go stale.
 
@@ -101,16 +102,27 @@ Update this note (or delete it) once either piece lands, so it doesn't go stale.
 - Not yet verified visually beyond the rendered HTML: podium layout on desktop/mobile has not been screenshotted.
 - **Scope note:** adding CO2 and recycled-material categories goes beyond `project-brief.md` §8 ("single category only: trees planted"). Done deliberately because the assigned task text asks for per-type rankings explicitly, so the task supersedes the older brief here. Flagging it rather than burying it — if the group wants §8 held to strictly, the extra two types can be dropped by deleting their entries from `CONTRIBUTION_TYPES` and the matching `contributions` keys, with no other code change.
 
+## Just built: mint hook, block confirmation, loading states (2026-07-20)
+
+- **`src/lib/blockchain-provider.ts`** (new) — the Yaci Store + Blockfrost-fallback duck-typed provider, extracted from `scripts/mint-poc.mjs` into a shared module so both minting and tx-status polling use the same connection. Also exports `getTxConfirmation(txHash)`, a cheap check against `GET /txs/{hash}` used to poll "has this landed in a block yet." Cast to `IFetcher & ISubmitter` with a comment explaining why — the object only implements the handful of methods this app actually calls (matching what already worked at runtime in the untyped `.mjs` script), not the full interface.
+- **`src/lib/mint.ts`** (new) — `mintCertificationToken(input)`, the real product code extracted from `scripts/mint-poc.mjs`: builds a time-locked native policy, mints one token with CIP-25 metadata for the given case, submits it, returns `{ txHash, policyId }`. Recipient is still the shared test company address (`docs/uzh-network.md`) — real per-company custodial wallets are backend item 7 below, still deprioritized.
+- **`castVote` (`src/lib/cases.ts`) now triggers a real mint automatically** the moment a case first crosses 2-of-3 (guarded so it only fires once, not on every subsequent vote call). Wrapped in try/catch: a mint failure sets `mintStatus: "failed"` with `mintError` but does **not** undo the certification or throw out of `castVote` — same lesson as the earlier vote-panel bug (a downstream failure must never hide an upstream success). `Case` gained `mintStatus`/`mintTxHash`/`mintPolicyId`/`mintError` fields. `castVote` and `submitVote` (`src/app/dao/actions.ts`) are now `async` to accommodate the real network call.
+- **Verified with a real transaction, not just a passing build**: a throwaway script called `castVote` directly (bypassing the need for a real Lace wallet to drive two votes through the browser) on the seeded `case-001` (Nestle) — TxID `1745cc3d08b8f36506d8b69e424de639419069bd0b377a47aa13b9ea3ac9a0e9`, policy `b5a9d49d4c0b55c2b18c850834918e4706d09ff36041aa0499402fe4`. Independently re-checked with direct `curl` against the Yaci Store API (not trusted from the script's own output): the metadata matches the case exactly (company, action, quantity, verifier, jury result) and the token appears at the destination address. Script deleted after the check, not part of the repo.
+- **`src/components/tx-status.tsx`** (new) — reusable phase indicator (building → signing → submitting → confirming → confirmed/error) with a pulsing dot for in-flight phases, shared between the vote and mint flows so both tell a consistent story.
+- **Vote confirmation upgraded** (`vote-panel.tsx`): after `wallet.submitTx` returns a hash, the UI now polls `checkTxConfirmation` (a new Server Action wrapping `getTxConfirmation`) every 4s for up to ~1 minute, showing a "waiting for block confirmation" loading state, then the actual block height once found — previously the hash appeared immediately with no confirmation step at all. The signer's wallet address is now shown alongside the hash and block once confirmed.
+- **Mint confirmation surfaced in the same panel**: once `caseData.mintStatus` appears (from any vote call — the real one or one of the two simulated ones, whichever happens to be the certifying vote), a "Certification token" block renders using the same `TxStatus` component and the same block-confirmation polling, showing policy ID, TxID, and block once confirmed. A failed mint shows the error without implying the jury decision itself was affected.
+- Verified: `npm run build` and `npm run lint` clean; case detail pages (`/dao`, `/dao/[caseId]`) load and render correctly with no regressions to the existing pending-case view.
+
 ## TODO, in priority order (2026-07-20)
 
 Reordered from a flat list to reflect what actually blocks a working end-to-end PoC demo vs. what's nice-to-have. Login/auth and company registration are explicitly deprioritized (Mauricio's call, 2026-07-20) — the existing simulated `/login` is good enough to keep demoing with for now. Within each group, most important first.
 
 ### Backend
 
-1. **Hook the proven mint into `castVote` on 2-of-3 approval.** The single biggest gap between "isolated proof" and "actual demo flow" — everything else (`scripts/mint-poc.mjs`, the funded system signer, the Yaci Store + Blockfrost-fallback pipeline) is already proven working, this just wires it in.
-   Files: new `src/lib/mint.ts` (extracted from `scripts/mint-poc.mjs`, kept as-is for reference), `src/lib/cases.ts` (`castVote`), `src/app/dao/actions.ts`.
-2. Record the resulting mint TxID on the case.
-   Files: `src/lib/cases.ts` (new `mintTxHash` field on `Case`).
+1. [x] **Hook the proven mint into `castVote` on 2-of-3 approval.** Done — real TxID, see "Just built: mint hook" above.
+   Files: `src/lib/mint.ts`, `src/lib/blockchain-provider.ts`, `src/lib/cases.ts` (`castVote`), `src/app/dao/actions.ts`.
+2. [x] Record the resulting mint TxID on the case. Done — `mintStatus`/`mintTxHash`/`mintPolicyId`/`mintError` on `Case`.
+   Files: `src/lib/cases.ts`.
 3. Cloudinary preset using `auto` resource type, so both images and PDFs upload through the same unsigned endpoint (see the scope decision above — no hashing, no per-type branching needed).
    Files: none in-repo (Cloudinary console setting), new env var for the preset name/cloud name.
 4. Verifier and jury rotation logic — can start simple (pick from a fixed pool) for the PoC.
@@ -148,16 +160,16 @@ This entire role is currently a hard blocker — there is no verifier login, das
 
 ### Frontend — transaction status (vote and mint)
 
-1. Mint confirmation screen with policy ID, TxID, block, and destination address. Once the backend mint hook (above) lands, this is the single strongest moment of the demo, so it's worth building well first.
-   Files: new component inside `src/app/company/cases/page.tsx` (or its own file), depends on `src/lib/mint.ts`.
-2. Reusable transaction-status component (building → signing → submitting → confirmed/error, with a loading animation on the in-progress states), shared between vote and mint.
-   Files: new `src/components/tx-status.tsx`.
-3. Vote: actually confirm the transaction landed in a block (today we only show the hash right after submit, we never confirm inclusion), and show that block once confirmed.
+1. [x] Mint confirmation, with policy ID, TxID, and block — done, surfaced inline in `vote-panel.tsx`'s "Certification token" section (not a separate screen under `/company`, since that route doesn't exist yet; will move there once the company cases view is built).
    Files: `src/app/dao/[caseId]/vote-panel.tsx`.
-4. Vote: show the signer's wallet address in the confirmation block (already held in state, just not displayed there).
+2. [x] Reusable transaction-status component, done.
+   Files: `src/components/tx-status.tsx`.
+3. [x] Vote: confirms block inclusion via polling (`checkTxConfirmation` Server Action, `src/lib/blockchain-provider.ts`), done.
+   Files: `src/app/dao/[caseId]/vote-panel.tsx`, `src/app/dao/actions.ts`.
+4. [x] Vote: signer's wallet address shown in the confirmation block, done.
    Files: same file as above.
-5. "Verify on-chain" button that re-queries the API directly and shows the raw response — reinforces the "don't just trust our frontend" story, but not required for a working demo.
-   Files: new `src/lib/verify-onchain.ts` (endpoints documented in `docs/uzh-network.md`), used in `vote-panel.tsx` and the mint screen above.
+5. "Verify on-chain" button that re-queries the API directly and shows the raw response — reinforces the "don't just trust our frontend" story, but not required for a working demo. Still open.
+   Files: new `src/lib/verify-onchain.ts` (endpoints documented in `docs/uzh-network.md`), used in `vote-panel.tsx` and the mint confirmation above.
 
 ### Frontend — company ranking
 

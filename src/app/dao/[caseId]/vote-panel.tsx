@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrowserWallet, MeshTxBuilder } from "@meshsdk/core";
 import type { Case, VoteDecision } from "@/lib/cases";
 import { UZH_PROTOCOL_PARAMS } from "@/lib/uzh-protocol-params";
-import { submitVote } from "../actions";
+import { submitVote, checkTxConfirmation } from "../actions";
 import { QuorumBar } from "./quorum-bar";
+import { TxStatus, type TxPhase } from "@/components/tx-status";
 
 type WalletStatus =
   | "idle"
@@ -23,6 +24,8 @@ type VoteStatus =
   | "error";
 
 const SIMULATED_VOTE_DELAY_MS = 3000;
+const CONFIRMATION_POLL_MS = 4000;
+const CONFIRMATION_MAX_ATTEMPTS = 15; // ~1 minute at the interval above
 
 const SIMULATED_JUROR_POOL = ["Juror #14", "Juror #29", "Juror #07"];
 
@@ -56,6 +59,23 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Polls until the tx shows up in a block or we give up -- Yaci Store 404s
+// until it's indexed, that's the normal "not confirmed yet" state, not an
+// error (see src/lib/blockchain-provider.ts).
+async function pollForBlock(
+  txHash: string,
+  onConfirmed: (blockHeight: number) => void,
+) {
+  for (let attempt = 0; attempt < CONFIRMATION_MAX_ATTEMPTS; attempt += 1) {
+    await delay(CONFIRMATION_POLL_MS);
+    const result = await checkTxConfirmation(txHash);
+    if (result.confirmed && result.blockHeight !== undefined) {
+      onConfirmed(result.blockHeight);
+      return;
+    }
+  }
+}
+
 export function VotePanel({ initialCase }: { initialCase: Case }) {
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("idle");
@@ -65,8 +85,27 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [caseData, setCaseData] = useState<Case>(initialCase);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [voteBlockHeight, setVoteBlockHeight] = useState<number | null>(null);
+  const [voteConfirming, setVoteConfirming] = useState(false);
+  const [mintBlockHeight, setMintBlockHeight] = useState<number | null>(null);
+  const [mintConfirming, setMintConfirming] = useState(false);
+  const polledMintTxRef = useRef<string | null>(null);
 
   const alreadyResolved = caseData.status !== "pending";
+
+  // Once a mint tx hash appears on the case (from this vote or one of the
+  // simulated ones), start polling for its block the same way the vote's
+  // own tx is confirmed -- same loading -> confirmed story either way.
+  useEffect(() => {
+    const hash = caseData.mintTxHash;
+    if (!hash || polledMintTxRef.current === hash) return;
+    polledMintTxRef.current = hash;
+    setMintConfirming(true);
+    pollForBlock(hash, (blockHeight) => {
+      setMintBlockHeight(blockHeight);
+      setMintConfirming(false);
+    }).then(() => setMintConfirming(false));
+  }, [caseData.mintTxHash]);
 
   async function connectWallet() {
     setWalletStatus("connecting");
@@ -167,6 +206,8 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
       );
       setCaseData(updated);
       setVoteStatus("done");
+      setVoteConfirming(true);
+      pollForBlock(hash, setVoteBlockHeight).then(() => setVoteConfirming(false));
       runSimulatedVotes(decision);
     } catch (err) {
       // The blockchain transaction above already succeeded (hash is real and
@@ -212,6 +253,16 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
       // simulated vote failed silently, the real vote is still recorded
     }
   }
+
+  const voteTxPhase: TxPhase =
+    voteStatus === "done" ? (voteConfirming ? "confirming" : "confirmed") : "idle";
+
+  const mintTxPhase: TxPhase =
+    caseData.mintStatus === "minted"
+      ? mintConfirming
+        ? "confirming"
+        : "confirmed"
+      : "idle";
 
   return (
     <div className="border border-border p-6 sm:p-8">
@@ -276,11 +327,12 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                   ? "Your vote was signed and submitted as a real transaction."
                   : "Your vote transaction was confirmed on-chain, but the app failed to record it -- see below."}
               </p>
-              {txHash && (
-                <p className="mt-2 break-all font-mono text-xs text-primary">
-                  Tx hash: {txHash}
-                </p>
-              )}
+              <TxStatus
+                phase={voteStatus === "done" ? voteTxPhase : "idle"}
+                txHash={txHash}
+                blockHeight={voteBlockHeight}
+                address={walletAddress}
+              />
               {voteStatus === "error" && errorMessage && (
                 <p className="mt-3 text-sm text-destructive">{errorMessage}</p>
               )}
@@ -310,21 +362,15 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                   Connect a wallet to vote.
                 </p>
               )}
-              {voteStatus === "building" && (
-                <p className="mt-3 font-mono text-xs text-muted-foreground">
-                  Building the vote transaction...
-                </p>
-              )}
-              {voteStatus === "signing" && (
-                <p className="mt-3 font-mono text-xs text-muted-foreground">
-                  Waiting for signature in Lace...
-                </p>
-              )}
-              {voteStatus === "submitting" && (
-                <p className="mt-3 font-mono text-xs text-muted-foreground">
-                  Submitting to the UZH Cardano network...
-                </p>
-              )}
+              <TxStatus
+                phase={
+                  voteStatus === "building" ||
+                  voteStatus === "signing" ||
+                  voteStatus === "submitting"
+                    ? voteStatus
+                    : "idle"
+                }
+              />
               {voteStatus === "error" && (
                 <p className="mt-3 text-sm text-destructive">{errorMessage}</p>
               )}
@@ -352,6 +398,34 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                 {caseData.status === "certified"
                   ? "Certified -- two of three jurors approved"
                   : "Rejected -- two of three jurors denied"}
+              </p>
+            )}
+          </div>
+        )}
+
+        {caseData.mintStatus && (
+          <div>
+            <p className="font-mono text-xs uppercase tracking-widest text-foreground">
+              Certification token
+            </p>
+            {caseData.mintStatus === "minted" ? (
+              <TxStatus
+                phase={mintTxPhase}
+                txHash={caseData.mintTxHash}
+                blockHeight={mintBlockHeight}
+                confirmedLabel="Minted -- native token submitted to the company wallet"
+              />
+            ) : (
+              <p className="mt-3 text-sm text-destructive">
+                Minting failed: {caseData.mintError ?? "unknown error"}. The
+                jury decision itself is unaffected -- only the token issuance
+                needs a retry.
+              </p>
+            )}
+            {caseData.mintPolicyId && (
+              <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+                Policy ID:{" "}
+                <span className="text-foreground">{caseData.mintPolicyId}</span>
               </p>
             )}
           </div>

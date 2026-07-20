@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { castVote, type Case, type VoteDecision } from "@/lib/cases";
+import { getTxConfirmation, type TxConfirmation } from "@/lib/blockchain-provider";
 
 export async function submitVote(
   caseId: string,
@@ -10,8 +11,16 @@ export async function submitVote(
   decision: VoteDecision,
   simulated: boolean,
 ): Promise<Case> {
-  const updated = castVote(caseId, { jurorId, jurorLabel, decision, simulated });
+  const updated = await castVote(caseId, { jurorId, jurorLabel, decision, simulated });
   revalidatePath("/dao");
   revalidatePath(`/dao/${caseId}`);
   return updated;
+}
+
+// Lets a client component poll "has this tx landed in a block yet" without
+// bundling any Cardano libraries into the client -- all chain access stays
+// server-side. Used for both the connected juror's real vote tx and the
+// mint tx.
+export async function checkTxConfirmation(txHash: string): Promise<TxConfirmation> {
+  return getTxConfirmation(txHash);
 }
