@@ -34,7 +34,60 @@ const steps = [
   },
 ];
 
-const deployedAt = new Date().toISOString();
+function StepText({
+  step,
+  align,
+}: {
+  step: (typeof steps)[number];
+  align: "left" | "right";
+}) {
+  return (
+    <div className={align === "right" ? "text-right" : ""}>
+      <h3 className="font-heading text-lg text-foreground">{step.title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        {step.body}
+      </p>
+    </div>
+  );
+}
+
+const shippedItems = [
+  {
+    title: "DAO jury voting",
+    detail: "Real, wallet-signed Cardano transactions on our testnet, not a simulation.",
+  },
+  {
+    title: "Public company profiles",
+    detail: "Certification badges and rankings, browsable with no login.",
+  },
+  {
+    title: "Minting proven on-chain",
+    detail: "Backend builds, signs, and submits a real native-token mint end to end.",
+  },
+  {
+    title: "CI/CD",
+    detail: "Every push to main rebuilds and redeploys automatically.",
+  },
+];
+
+const plannedItems = [
+  {
+    title: "Auto-mint on jury approval",
+    detail: "Wire the proven mint pipeline to fire the moment a case hits 2 of 3.",
+  },
+  {
+    title: "Firebase authentication",
+    detail: "Replaces the simulated login for company, verifier, and juror roles.",
+  },
+  {
+    title: "Evidence submission",
+    detail: "Company photo + GPS upload, feeding real cases into the docket.",
+  },
+  {
+    title: "Verifier workflow",
+    detail: "Rotation-assigned independent site inspection.",
+  },
+];
 
 export default function Home() {
   return (
@@ -100,20 +153,77 @@ export default function Home() {
               </p>
               <p className="mt-2 inline-flex items-center gap-2 font-mono text-sm text-primary">
                 <span className="h-2 w-2 rounded-full bg-primary" />
-                Deploy pipeline live
+                Real votes and mints on Cardano
               </p>
-              <p className="mt-1 font-mono text-xs text-muted-foreground">
-                {deployedAt}
-              </p>
+              <a
+                href="#progress"
+                className="mt-1 inline-block font-mono text-xs text-muted-foreground underline decoration-dotted underline-offset-4 hover:text-foreground"
+              >
+                See what&apos;s shipped and what&apos;s next &darr;
+              </a>
             </div>
             <div>
               <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                 Scope
               </p>
               <p className="mt-2 text-sm text-foreground">
-                Single category proof of concept: trees planted. Cardano
-                Preprod testnet.
+                Single category proof of concept: trees planted. Dedicated
+                UZH Cardano testnet.
               </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="progress" className="border-t border-border py-16 sm:py-24">
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            Build docket
+          </p>
+          <h2 className="mt-3 font-heading text-2xl text-primary sm:text-3xl">
+            Nothing here counts until it&apos;s verified — including our own
+            progress.
+          </h2>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Same standard we hold companies to: a claim only counts once it
+            is shown, not just stated.
+          </p>
+
+          <div className="mt-10 grid grid-cols-1 gap-x-10 gap-y-10 md:grid-cols-2">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-widest text-primary">
+                Shipped
+              </p>
+              <ul className="mt-4 divide-y divide-border border-t border-border">
+                {shippedItems.map((item) => (
+                  <li key={item.title} className="flex gap-3 border-l-2 border-l-primary py-4 pl-4">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden />
+                    <div>
+                      <p className="text-sm text-foreground">{item.title}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {item.detail}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                Next up
+              </p>
+              <ul className="mt-4 divide-y divide-border border-t border-border">
+                {plannedItems.map((item) => (
+                  <li key={item.title} className="flex gap-3 border-l-2 border-dashed border-l-border py-4 pl-4">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full border border-muted-foreground" aria-hidden />
+                    <div>
+                      <p className="text-sm text-foreground">{item.title}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {item.detail}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
@@ -122,12 +232,12 @@ export default function Home() {
           <h2 className="font-heading text-2xl text-primary sm:text-3xl">
             How it works
           </h2>
-          <div className="mt-10 grid grid-cols-1 gap-x-10 gap-y-12 sm:grid-cols-2">
+
+          {/* Mobile: simple stacked list, no room for the connector below. */}
+          <div className="mt-10 grid grid-cols-1 gap-y-12 sm:hidden">
             {steps.map((step) => (
               <div key={step.n} className="flex gap-5">
-                <span className="font-mono text-sm text-accent">
-                  {step.n}
-                </span>
+                <span className="font-mono text-sm text-accent">{step.n}</span>
                 <div>
                   <h3 className="font-heading text-lg text-foreground">
                     {step.title}
@@ -138,6 +248,36 @@ export default function Home() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Desktop: a single spine down the center, steps alternating
+              left/right off of it, so the reading order (01 -> 06) is
+              exactly the line -- there's no other path to follow. */}
+          <div className="relative mt-14 hidden sm:block">
+            <div
+              aria-hidden
+              className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border"
+            />
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-x-6">
+              {steps.map((step, i) => {
+                const onLeft = i % 2 === 0;
+                return (
+                  <div key={step.n} className="contents">
+                    <div className={onLeft ? "pb-16 text-right" : "pb-16"}>
+                      {onLeft && <StepText step={step} align="right" />}
+                    </div>
+                    <div className="flex justify-center">
+                      <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-forest bg-background font-mono text-xs text-forest">
+                        {step.n}
+                      </span>
+                    </div>
+                    <div className="pb-16">
+                      {!onLeft && <StepText step={step} align="left" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
       </main>
@@ -152,7 +292,7 @@ export default function Home() {
             />
             GreenProof — independent, on-chain proof of environmental action.
           </span>
-          <span className="font-mono">Cardano Preprod · Lucid Evolution · Blockfrost</span>
+          <span className="font-mono">UZH Cardano testnet · Mesh SDK</span>
         </div>
       </footer>
     </div>
