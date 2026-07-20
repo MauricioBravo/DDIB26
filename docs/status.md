@@ -145,15 +145,20 @@ This entire role is currently a hard blocker — there is no verifier login, das
 
 ### Frontend — company ranking
 
-Today `/companies` is a flat, unordered, unfiltered list — despite the "Public dashboard" TODO item historically being marked done, an actual ranking/leaderboard does not exist yet.
+Today `/companies` is a flat, unordered, unfiltered list — despite the "Public dashboard" TODO item historically being marked done, an actual ranking/leaderboard does not exist yet. Assigned to Timi (see "Who's doing what" above).
 
-1. Add real numeric fields to `src/lib/companies.ts` (e.g. a numeric carbon-offset value, not just the display string "252 t CO2 / yr") — nothing can be sorted without this.
+1. Add real numeric fields to `src/lib/companies.ts` (e.g. a numeric carbon-offset value, not just the display string "252 t CO2 / yr") — nothing can be sorted without this. Also add a company-size field (e.g. employee count or a size bracket like small/medium/large) — needed for item 3 below.
    Files: `src/lib/companies.ts`.
 2. Ranking view with a podium treatment for top 1-3 and a plain list for the rest — the actual "indirect competition" deliverable from `project-brief.md` §3/§6.
    Files: new `src/app/companies/rankings/page.tsx`, run through the `frontend-design` skill per `CLAUDE.md`.
-3. Filters by category (trees planted, carbon offset, etc.) and country.
+3. Multiple ways to sort/rank, not just one overall leaderboard:
+   - By total contribution (today's plan: overall achievement, e.g. total trees, regardless of type).
+   - By contribution type as separate rankings (trees planted, CO2 reduced, recycled material, etc.) — not just a filter on one combined score, each type gets its own orderable leaderboard.
+   - By company size, normalized — 1,000 trees planted by Walmart is not the same achievement as 1,000 trees planted by a small kiosk, so a size-adjusted ranking (e.g. per-employee, or grouped by size bracket) should exist alongside the raw-totals one, not replace it.
+   Files: same file as item 2, plus the size field from item 1.
+4. Filters by category (trees planted, carbon offset, etc.) and country.
    Files: same file as above.
-4. Decide whether this replaces `/companies` or lives alongside it.
+5. Decide whether this replaces `/companies` or lives alongside it.
    Files: `src/app/companies/page.tsx`.
 
 ### Cross-cutting, not yet placed above
