@@ -34,6 +34,14 @@ export default function CompaniesDirectoryPage() {
           <p className="mt-2 font-mono text-[11px] text-muted-foreground/80">
             Example data for this proof of concept -- not live certifications.
           </p>
+          <p className="mt-5">
+            <Link
+              href="/companies/rankings"
+              className="border border-primary px-4 py-2 font-mono text-xs uppercase tracking-widest text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+            >
+              See the rankings &rarr;
+            </Link>
+          </p>
         </section>
 
         <section className="pt-2 pb-16">

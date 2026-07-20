@@ -81,9 +81,24 @@ Deliberately **not** computing a real hash (e.g. SHA-256) of uploaded evidence f
 To avoid two people (or their Claude Code sessions) building the same thing in parallel:
 
 - **Mauricio, in progress:** the company evidence-submission form (Frontend — company, item 1 below) and the verifier dashboard + evidence upload (Frontend — verifier, items 1-2 below). **Don't start these from another branch without checking in first** — touches `src/lib/cases.ts`, new `src/app/company/`, new `src/app/verifier/`.
-- **Timi, assigned:** the company ranking/leaderboard (Frontend — company ranking, all 4 items below). Deliberately picked because it shares zero files with what Mauricio is doing — only touches `src/lib/companies.ts` and `src/app/companies/*`, nothing in `cases.ts`, `company/`, `verifier/`, or `dao/`. Safe to start immediately after pulling, no coordination needed.
+- **Timi:** the company ranking/leaderboard (Frontend — company ranking below) — **all five items done**, see "Just built" below. Only touched `src/lib/companies.ts` and `src/app/companies/*` (nothing in `cases.ts`, `company/`, `verifier/`, or `dao/`), so no overlap with Mauricio's in-progress work. One item left for Mauricio: a nav link into `/companies/rankings` from the redesigned landing page (`src/app/page.tsx`), left out of this branch on purpose to avoid touching his file.
 
 Update this note (or delete it) once either piece lands, so it doesn't go stale.
+
+## Just built: company rankings (2026-07-20, Timi)
+
+- **`src/lib/companies.ts`** — the display strings were unsortable (`value: "12,000"`), so each company now carries `contributions: Record<ContributionTypeId, number>` (`trees`, `co2`, `recycled`) plus `employees`. Size is derived from `employees` via `sizeBracketOf()` against fixed `SIZE_BRACKET_THRESHOLDS` rather than stored, so the number and the bracket can't drift apart. Employee counts are approximate real-world figures, same illustrative-data basis as the rest of the file.
+- **The three contribution types carry genuinely independent values**, not figures derived from one another — otherwise a CO2 board would just be the trees board in different units. Maersk leads on CO2 (shipping decarbonisation) while sitting last on trees; Unilever leads on recycled material; Patagonia leads both per-staff boards. All three raw boards have different winners, which is the point of having them.
+- **Two orthogonal axes, not a flat list of leaderboards**: `CONTRIBUTION_TYPES` (what was certified) and `RANKING_BASES` (raw total vs per 1,000 staff). Three types times two bases gives six boards from two small registries, and it keeps the size-adjusted view sitting *alongside* the raw one rather than replacing it, as the task requires. A new action category is an append to `CONTRIBUTION_TYPES` plus a key on `contributions` — nothing in the page enumerates them by hand.
+- **`rankCompanies(typeId, basis, filters)`** — filters by category/country/size, then sorts. Uses standard competition ranking (1, 2, 2, 4) so a future data change that produces a genuine tie can't silently render as 1, 2, 3, 4. Nothing ties in today's data.
+- **`/companies/rankings`** (`src/app/companies/rankings/page.tsx` + `rank-seal.tsx`) — podium for the top 3 using the same struck-seal medallion language as the profile badges, olive laurel on the leader only; ledger-style rows for the rest, matching `/dao` and `/companies`. Ran through the `frontend-design` skill per `CLAUDE.md`.
+- **Design thesis: rank is a function of the question asked.** The boards genuinely disagree — Patagonia is 4th on raw trees and 1st per 1,000 employees (3,000 staff vs IKEA's 231,000); Maersk is last on trees and 1st on CO2. Each row in the lower list shows its shift against the other basis, so the disagreement is visible rather than buried. This is the `project-brief.md` §3/§6 "indirect competition" deliverable, with the size-fairness caveat built into the UI instead of a footnote.
+- **State lives in the URL** (`?type=&basis=&category=&country=&size=`), so the page stays a server component, boards are shareable/linkable, and it works with JavaScript disabled. Unrecognised values are dropped rather than trusted, so a hand-edited query string can't reach `getContributionType` (which throws) or blank the board.
+- `searchParams` is a **Promise** in Next 16 and is awaited — the Next 14 synchronous form silently breaks. Confirmed against `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/page.md` per `AGENTS.md`.
+- **Item 5 resolved: the rankings live alongside `/companies`, not replacing it.** The directory stays the plain A-Z-style list of who is certified; the rankings answer a different question (who leads, on which measure). `/companies` now links out to it and the rankings link back. Deliberately **not** linked from the landing page (`src/app/page.tsx`) — that file is outside this task's file scope and Mauricio has just redesigned it, so adding the nav entry there is left to him to avoid a collision.
+- Verified: `npx tsc --noEmit` and `npm run lint` clean. Against the running dev server: all six type/basis boards return distinct orderings, all three filters, the empty-result state, and malformed query strings (`?type=NONSENSE`, `?basis=zzz`, `?country=Atlantis`) — all 200, falling back to defaults rather than throwing.
+- Not yet verified visually beyond the rendered HTML: podium layout on desktop/mobile has not been screenshotted.
+- **Scope note:** adding CO2 and recycled-material categories goes beyond `project-brief.md` §8 ("single category only: trees planted"). Done deliberately because the assigned task text asks for per-type rankings explicitly, so the task supersedes the older brief here. Flagging it rather than burying it — if the group wants §8 held to strictly, the extra two types can be dropped by deleting their entries from `CONTRIBUTION_TYPES` and the matching `contributions` keys, with no other code change.
 
 ## TODO, in priority order (2026-07-20)
 
@@ -145,20 +160,20 @@ This entire role is currently a hard blocker — there is no verifier login, das
 
 ### Frontend — company ranking
 
-Today `/companies` is a flat, unordered, unfiltered list — despite the "Public dashboard" TODO item historically being marked done, an actual ranking/leaderboard does not exist yet. Assigned to Timi (see "Who's doing what" above).
+Assigned to Timi (see "Who's doing what" above). First pass landed 2026-07-20 — see "Just built: company rankings" above for detail.
 
-1. Add real numeric fields to `src/lib/companies.ts` (e.g. a numeric carbon-offset value, not just the display string "252 t CO2 / yr") — nothing can be sorted without this. Also add a company-size field (e.g. employee count or a size bracket like small/medium/large) — needed for item 3 below.
+1. [x] Add real numeric fields to `src/lib/companies.ts` — done: `treesPlanted`, `carbonOffsetTonnes`, `employees`, plus `sizeBracketOf()` deriving small/medium/large from the employee count rather than storing it separately.
    Files: `src/lib/companies.ts`.
-2. Ranking view with a podium treatment for top 1-3 and a plain list for the rest — the actual "indirect competition" deliverable from `project-brief.md` §3/§6.
-   Files: new `src/app/companies/rankings/page.tsx`, run through the `frontend-design` skill per `CLAUDE.md`.
-3. Multiple ways to sort/rank, not just one overall leaderboard:
-   - By total contribution (today's plan: overall achievement, e.g. total trees, regardless of type).
-   - By contribution type as separate rankings (trees planted, CO2 reduced, recycled material, etc.) — not just a filter on one combined score, each type gets its own orderable leaderboard.
-   - By company size, normalized — 1,000 trees planted by Walmart is not the same achievement as 1,000 trees planted by a small kiosk, so a size-adjusted ranking (e.g. per-employee, or grouped by size bracket) should exist alongside the raw-totals one, not replace it.
-   Files: same file as item 2, plus the size field from item 1.
-4. Filters by category (trees planted, carbon offset, etc.) and country.
-   Files: same file as above.
-5. Decide whether this replaces `/companies` or lives alongside it.
+2. [x] Ranking view with a podium treatment for top 1-3 and a plain list for the rest — done at `/companies/rankings`, struck-seal podium plus ledger rows, run through the `frontend-design` skill.
+   Files: `src/app/companies/rankings/page.tsx`, `src/app/companies/rankings/rank-seal.tsx`.
+3. [x] Multiple ways to sort/rank, not just one overall leaderboard:
+   - [x] By total contribution (raw total for the selected action).
+   - [x] By contribution type as separate rankings — trees planted, CO2 reduced, and recycled material each get their own board (`CONTRIBUTION_TYPES`), with genuinely independent values so the three raw boards have three different winners (IKEA / Maersk / Unilever). Not a filter on one combined score.
+   - [x] By company size, normalized — per 1,000 employees, available for every type, sitting alongside the raw board rather than replacing it (`RANKING_BASES`). The two genuinely disagree (Patagonia 4th on raw trees, 1st per-capita), and each row shows its shift against the other basis.
+   Files: same files as item 2, plus the size field from item 1.
+4. [x] Filters by category and country — done, plus a size-bracket filter. All three are URL params, so filtered boards are shareable and the page needs no client JS.
+   Files: same files as above.
+5. [x] Decide whether this replaces `/companies` or lives alongside it. **Alongside** — the directory stays the certified-companies list, the rankings answer the separate "who leads" question; `/companies` links out to the rankings and back. Landing-page nav entry deliberately left to Mauricio (his file, just redesigned) rather than edited from this branch.
    Files: `src/app/companies/page.tsx`.
 
 ### Cross-cutting, not yet placed above
