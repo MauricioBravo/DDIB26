@@ -59,6 +59,7 @@ export function EvidenceForm({
       }
       const updated = await submitEvidence(caseId, uploaded, note.trim() || undefined);
       setCaseData(updated);
+      picked.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
       setPicked([]);
       setNote("");
       setStatus("done");
@@ -110,30 +111,58 @@ export function EvidenceForm({
         </p>
       )}
 
-      <label
-        className={`mt-4 flex h-32 flex-col items-center justify-center gap-1 border-2 border-dashed border-border text-center transition-colors ${
-          cloudinaryReady
-            ? "cursor-pointer hover:border-primary hover:bg-secondary"
-            : "cursor-not-allowed opacity-50"
-        }`}
-      >
-        <span className="font-mono text-xs uppercase tracking-widest text-foreground">
-          Take or choose photos &middot; add a document
-        </span>
-        <span className="font-mono text-[11px] text-muted-foreground">
-          jpg, png, pdf
-        </span>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/jpg,application/pdf"
-          multiple
-          capture="environment"
-          disabled={!cloudinaryReady}
-          onChange={(e) => handleFilesPicked(e.target.files)}
-          className="hidden"
-        />
-      </label>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        {/* A camera only ever captures a photo, so this input stays
+            image-only with `capture` -- combining capture with a PDF
+            accept type is contradictory and breaks document picking on
+            some mobile browsers, hence the separate control below. */}
+        <label
+          className={`flex h-28 flex-col items-center justify-center gap-1 border-2 border-dashed border-border text-center transition-colors ${
+            cloudinaryReady
+              ? "cursor-pointer hover:border-primary hover:bg-secondary"
+              : "cursor-not-allowed opacity-50"
+          }`}
+        >
+          <span className="font-mono text-xs uppercase tracking-widest text-foreground">
+            Take a photo
+          </span>
+          <span className="font-mono text-[11px] text-muted-foreground">
+            jpg, png
+          </span>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/jpg"
+            capture="environment"
+            disabled={!cloudinaryReady}
+            onChange={(e) => handleFilesPicked(e.target.files)}
+            className="hidden"
+          />
+        </label>
+
+        <label
+          className={`flex h-28 flex-col items-center justify-center gap-1 border-2 border-dashed border-border text-center transition-colors ${
+            cloudinaryReady
+              ? "cursor-pointer hover:border-primary hover:bg-secondary"
+              : "cursor-not-allowed opacity-50"
+          }`}
+        >
+          <span className="font-mono text-xs uppercase tracking-widest text-foreground">
+            Choose files
+          </span>
+          <span className="font-mono text-[11px] text-muted-foreground">
+            photos or a pdf
+          </span>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/jpg,application/pdf"
+            multiple
+            disabled={!cloudinaryReady}
+            onChange={(e) => handleFilesPicked(e.target.files)}
+            className="hidden"
+          />
+        </label>
+      </div>
 
       {picked.length > 0 && (
         <ul className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
