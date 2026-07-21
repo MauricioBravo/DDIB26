@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { BrowserWallet, MeshTxBuilder } from "@meshsdk/core";
 import type { Case, VoteDecision } from "@/lib/cases";
 import { UZH_PROTOCOL_PARAMS } from "@/lib/uzh-protocol-params";
-import { submitVote, checkTxConfirmation } from "../actions";
+import { submitVote, checkTxConfirmation, fetchCaseSnapshot } from "../actions";
 import { QuorumBar } from "./quorum-bar";
 import { TxStatus, type TxPhase } from "@/components/tx-status";
 
@@ -26,6 +26,8 @@ type VoteStatus =
 const SIMULATED_VOTE_DELAY_MS = 3000;
 const CONFIRMATION_POLL_MS = 4000;
 const CONFIRMATION_MAX_ATTEMPTS = 15; // ~1 minute at the interval above
+const MINT_STATUS_POLL_MS = 3000;
+const MINT_STATUS_MAX_ATTEMPTS = 20; // ~1 minute at the interval above
 
 const SIMULATED_JUROR_POOL = ["Juror #14", "Juror #29", "Juror #07"];
 
@@ -76,6 +78,22 @@ async function pollForBlock(
   }
 }
 
+// Polls until the case's background mint (fired from castVote without being
+// awaited there, see src/lib/cases.ts) finishes -- either "minted" or
+// "failed", never staying "pending" forever short of a real hang.
+async function pollForMintResolution(
+  caseId: string,
+  onUpdate: (updated: Case) => void,
+) {
+  for (let attempt = 0; attempt < MINT_STATUS_MAX_ATTEMPTS; attempt += 1) {
+    await delay(MINT_STATUS_POLL_MS);
+    const updated = await fetchCaseSnapshot(caseId);
+    if (!updated) return;
+    onUpdate(updated);
+    if (updated.mintStatus !== "pending") return;
+  }
+}
+
 export function VotePanel({ initialCase }: { initialCase: Case }) {
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("idle");
@@ -90,12 +108,24 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
   const [mintBlockHeight, setMintBlockHeight] = useState<number | null>(null);
   const [mintConfirming, setMintConfirming] = useState(false);
   const polledMintTxRef = useRef<string | null>(null);
+  const polledMintPendingRef = useRef(false);
 
   const alreadyResolved = caseData.status !== "pending";
 
-  // Once a mint tx hash appears on the case (from this vote or one of the
-  // simulated ones), start polling for its block the same way the vote's
-  // own tx is confirmed -- same loading -> confirmed story either way.
+  // The mint fires in the background the moment the case is certified (see
+  // src/lib/cases.ts) -- submitVote's own response returns before it
+  // resolves, so this is the only way the client learns it finished.
+  useEffect(() => {
+    if (caseData.mintStatus !== "pending" || polledMintPendingRef.current) return;
+    polledMintPendingRef.current = true;
+    pollForMintResolution(caseData.id, setCaseData).finally(() => {
+      polledMintPendingRef.current = false;
+    });
+  }, [caseData.mintStatus, caseData.id]);
+
+  // Once a mint tx hash appears on the case, start polling for its block
+  // the same way the vote's own tx is confirmed -- same loading -> confirmed
+  // story either way.
   useEffect(() => {
     const hash = caseData.mintTxHash;
     if (!hash || polledMintTxRef.current === hash) return;
@@ -258,11 +288,13 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
     voteStatus === "done" ? (voteConfirming ? "confirming" : "confirmed") : "idle";
 
   const mintTxPhase: TxPhase =
-    caseData.mintStatus === "minted"
-      ? mintConfirming
-        ? "confirming"
-        : "confirmed"
-      : "idle";
+    caseData.mintStatus === "pending"
+      ? "minting"
+      : caseData.mintStatus === "minted"
+        ? mintConfirming
+          ? "confirming"
+          : "confirmed"
+        : "idle";
 
   return (
     <div className="border border-border p-6 sm:p-8">
@@ -408,19 +440,19 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
             <p className="font-mono text-xs uppercase tracking-widest text-foreground">
               Certification token
             </p>
-            {caseData.mintStatus === "minted" ? (
+            {caseData.mintStatus === "failed" ? (
+              <p className="mt-3 text-sm text-destructive">
+                Minting failed: {caseData.mintError ?? "unknown error"}. The
+                jury decision itself is unaffected -- only the token issuance
+                needs a retry.
+              </p>
+            ) : (
               <TxStatus
                 phase={mintTxPhase}
                 txHash={caseData.mintTxHash}
                 blockHeight={mintBlockHeight}
                 confirmedLabel="Minted -- native token submitted to the company wallet"
               />
-            ) : (
-              <p className="mt-3 text-sm text-destructive">
-                Minting failed: {caseData.mintError ?? "unknown error"}. The
-                jury decision itself is unaffected -- only the token issuance
-                needs a retry.
-              </p>
             )}
             {caseData.mintPolicyId && (
               <p className="mt-1 break-all font-mono text-xs text-muted-foreground">

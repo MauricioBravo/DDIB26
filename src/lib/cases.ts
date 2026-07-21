@@ -218,28 +218,40 @@ export async function castVote(
   // Only fire the mint once, the moment the case first crosses 2-of-3 --
   // not on every subsequent vote call, and not for a case that was already
   // certified before this call (target.status check above).
+  //
+  // Deliberately NOT awaited here: a real mint takes several seconds
+  // (network round-trips to build/sign/submit), and awaiting it would
+  // block this Server Action's response for that whole time with no way
+  // for the client to show progress in between -- the vote and the mint
+  // result would both "jump" into view at once instead of the client
+  // seeing a real "minting..." state. Firing it in the background and
+  // letting the client poll getCase()/getCaseSnapshot for the update
+  // works because this app runs as a persistent Node process (Docker on
+  // Oracle Cloud, see docs/deploy.md), not a serverless function that
+  // could be torn down before a detached promise finishes.
   if (justCertified) {
     target.mintStatus = "pending";
     const verifierId = target.verifierEvidence.verifierId;
-    try {
-      const result = await mintCertificationToken({
-        caseId: target.id,
-        company: target.company,
-        actionType: target.actionType,
-        quantity: target.quantity,
-        verifierId,
+    mintCertificationToken({
+      caseId: target.id,
+      company: target.company,
+      actionType: target.actionType,
+      quantity: target.quantity,
+      verifierId,
+    })
+      .then((result) => {
+        target.mintStatus = "minted";
+        target.mintTxHash = result.txHash;
+        target.mintPolicyId = result.policyId;
+      })
+      .catch((err) => {
+        // The vote itself already succeeded (2-of-3 reached) -- a mint
+        // failure shouldn't undo that. Same lesson as the vote-panel
+        // tx-hash bug fixed earlier: a downstream failure must never hide
+        // an upstream success.
+        target.mintStatus = "failed";
+        target.mintError = err instanceof Error ? err.message : "Unknown mint error";
       });
-      target.mintStatus = "minted";
-      target.mintTxHash = result.txHash;
-      target.mintPolicyId = result.policyId;
-    } catch (err) {
-      // The vote itself already succeeded (2-of-3 reached) -- a mint
-      // failure shouldn't undo that or throw out of castVote. Same lesson
-      // as the vote-panel tx-hash bug fixed earlier: a downstream failure
-      // must never hide an upstream success.
-      target.mintStatus = "failed";
-      target.mintError = err instanceof Error ? err.message : "Unknown mint error";
-    }
   }
 
   return target;

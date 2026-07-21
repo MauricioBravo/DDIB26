@@ -8,6 +8,7 @@ export type TxPhase =
   | "building"
   | "signing"
   | "submitting"
+  | "minting"
   | "confirming"
   | "confirmed"
   | "error";
@@ -16,6 +17,7 @@ const IN_FLIGHT_LABEL: Partial<Record<TxPhase, string>> = {
   building: "Building the transaction...",
   signing: "Waiting for signature...",
   submitting: "Submitting to the UZH Cardano network...",
+  minting: "Minting certification token...",
   confirming: "Waiting for block confirmation...",
 };
 
