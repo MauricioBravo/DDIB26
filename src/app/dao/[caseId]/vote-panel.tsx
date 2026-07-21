@@ -285,7 +285,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
       setErrorMessage(
         `Your vote transaction was confirmed on-chain (hash above), but saving it to the case record failed: ${
           err instanceof Error ? err.message : "unknown error"
-        }. Refresh the page -- if the case still shows as pending, note this tx hash for support.`,
+        }. Refresh the page, if the case still shows as pending, note this tx hash for support.`,
       );
     }
   }
@@ -417,7 +417,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
               <p className="text-sm text-muted-foreground">
                 {voteStatus === "done"
                   ? "Your vote was signed and submitted as a real transaction."
-                  : "Your vote transaction was confirmed on-chain, but the app failed to record it -- see below."}
+                  : "Your vote transaction was confirmed on-chain, but the app failed to record it, see below."}
               </p>
               <TxStatus
                 phase={voteStatus === "done" ? voteTxPhase : "idle"}
@@ -506,8 +506,8 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                 }`}
               >
                 {caseData.status === "certified"
-                  ? "Certified -- two of three jurors approved"
-                  : "Rejected -- two of three jurors denied"}
+                  ? "Certified: two of three jurors approved"
+                  : "Rejected: two of three jurors denied"}
               </p>
             )}
 
@@ -540,7 +540,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
             {caseData.mintStatus === "failed" ? (
               <p className="mt-2 text-sm text-destructive">
                 Minting failed: {caseData.mintError ?? "unknown error"}. The
-                jury decision itself is unaffected -- only the token issuance
+                jury decision itself is unaffected, only the token issuance
                 needs a retry.
               </p>
             ) : (
@@ -548,7 +548,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                 phase={mintTxPhase}
                 txHash={caseData.mintTxHash}
                 blockHeight={mintBlockHeight}
-                confirmedLabel="Minted -- native token submitted to the company wallet"
+                confirmedLabel="Minted, native token submitted to the company wallet"
               />
             )}
             {caseData.mintPolicyId && (

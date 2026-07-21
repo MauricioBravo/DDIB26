@@ -10,6 +10,7 @@ Repo is public (made public specifically to unlock free GitHub branch protection
 
 - `docs/status.md` tracks current project status and the frontend/backend TODO list. Update it in the same commit whenever you finish, start, or change the scope of something — it must never go stale. Check it at the start of a session to know what's actually done vs. still pending.
 - No emojis anywhere: UI copy, code, comments, commit messages, docs.
+- No em dashes (`—`) or double-hyphen dashes (`--`) in any user-facing UI copy (headings, body text, button labels, error/status messages, badges, etc.) — a known AI-writing tell. Use a comma, a period, or a colon instead, whichever reads most naturally. This applies to visible text only, not code comments or commit messages, which may use them normally.
 - Never add yourself (Claude) as a commit author or co-author. No `Co-Authored-By` trailer, no session links in commit messages. Plain, human-style commit messages only.
 - Do not leave shadcn/ui on its default gray/zinc theme. Always use the Palette A tokens below plus the chosen typography — see "Design" section.
 - All application code is TypeScript end to end (frontend, backend routes, minting script). No Python.

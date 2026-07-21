@@ -32,7 +32,7 @@ export default function CompaniesDirectoryPage() {
             No login required to browse.
           </p>
           <p className="mt-2 font-mono text-[11px] text-muted-foreground/80">
-            Example data -- not live certifications.
+            Example data, not live certifications.
           </p>
           <p className="mt-5">
             <Link

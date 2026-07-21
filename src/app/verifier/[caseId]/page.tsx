@@ -59,7 +59,7 @@ export default async function VerifierCasePage({
         {caseData.status === "rejected" && (
           <section className="border-t border-border py-6">
             <p className="font-mono text-xs uppercase tracking-widest text-destructive">
-              Rejected -- jury feedback
+              Rejected: jury feedback
             </p>
             <ul className="mt-3 space-y-2">
               {caseData.votes

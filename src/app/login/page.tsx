@@ -123,7 +123,7 @@ export default function LoginPage() {
                 Signed in as {ROLE_COPY[signedInAs].label}
               </p>
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                This is a demo login — no real account or session was
+                This is a demo login, no real account or session was
                 created. The {ROLE_COPY[signedInAs].label.toLowerCase()}{" "}
                 dashboard isn&apos;t built yet.
               </p>
@@ -187,7 +187,7 @@ export default function LoginPage() {
               </button>
 
               <p className="mt-6 font-mono text-xs leading-relaxed text-muted-foreground">
-                Demo credentials — Company: enterprise@example.com / 1234 · DAO
+                Demo credentials. Company: enterprise@example.com / 1234 · DAO
                 Juror: admin@example.com / 1234 · Verifier:
                 verifier@example.com / 1234
               </p>

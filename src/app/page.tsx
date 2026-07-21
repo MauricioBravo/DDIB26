@@ -5,7 +5,7 @@ const steps = [
   {
     n: "01",
     title: "Company registration",
-    body: "A company signs up. The backend generates a custodial Cardano wallet behind the scenes — no wallet, no crypto knowledge required.",
+    body: "A company signs up. The backend generates a custodial Cardano wallet behind the scenes, no wallet or crypto knowledge required.",
   },
   {
     n: "02",
@@ -30,7 +30,7 @@ const steps = [
   {
     n: "06",
     title: "Public dashboard",
-    body: "Verified achievements, badges, and rankings — permanent, independent, and impossible to quietly edit.",
+    body: "Verified achievements, badges, and rankings, permanent, independent, and impossible to quietly edit.",
   },
 ];
 
@@ -147,7 +147,7 @@ export default function Home() {
             </h1>
             <p className="mt-8 max-w-xl text-lg leading-relaxed text-muted-foreground">
               Two humans upload photos. A decentralized jury validates them.
-              The blockchain does the rest, silently — companies and
+              The blockchain does the rest, silently, companies and
               verifiers never touch a wallet.
             </p>
           </div>
@@ -161,7 +161,7 @@ export default function Home() {
                 We verify. We don&apos;t reward.
               </p>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Minting a token for a green action is easy — plenty of
+                Minting a token for a green action is easy, plenty of
                 projects do it. Proving the action actually happened,
                 independently, and keeping that proof tamper-proof, is the
                 part everyone skips. GreenProof is built to be that layer:
@@ -187,20 +187,73 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="progress" className="border-t border-border py-16 sm:py-24">
+        <section id="how-it-works" className="border-t border-border py-10 sm:py-14">
+          <h2 className="font-heading text-3xl text-primary sm:text-4xl">
+            How it works
+          </h2>
+
+          {/* Mobile: simple stacked list, no room for the connector below. */}
+          <div className="mt-8 grid grid-cols-1 gap-y-10 sm:hidden">
+            {steps.map((step) => (
+              <div key={step.n} className="flex gap-5">
+                <span className="font-mono text-sm text-accent">{step.n}</span>
+                <div>
+                  <h3 className="font-heading text-lg text-foreground">
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {step.body}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: a single spine down the center, steps alternating
+              left/right off of it, so the reading order (01 -> 06) is
+              exactly the line -- there's no other path to follow. */}
+          <div className="relative mt-10 hidden sm:block">
+            <div
+              aria-hidden
+              className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border"
+            />
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-x-6">
+              {steps.map((step, i) => {
+                const onLeft = i % 2 === 0;
+                return (
+                  <div key={step.n} className="contents">
+                    <div className={onLeft ? "pb-4 text-right" : "pb-4"}>
+                      {onLeft && <StepText step={step} align="right" />}
+                    </div>
+                    <div className="flex justify-center">
+                      <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-forest bg-background font-mono text-xs text-forest">
+                        {step.n}
+                      </span>
+                    </div>
+                    <div className="pb-4">
+                      {!onLeft && <StepText step={step} align="left" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section id="progress" className="border-t border-border py-10 sm:py-14">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Build docket
           </p>
-          <h2 className="mt-3 font-heading text-2xl text-primary sm:text-3xl">
-            Nothing here counts until it&apos;s verified — including our own
+          <h2 className="mt-2 font-heading text-3xl text-primary sm:text-4xl">
+            Nothing here counts until it&apos;s verified, including our own
             progress.
           </h2>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Same standard we hold companies to: a claim only counts once it
             is shown, not just stated.
           </p>
 
-          <div className="mt-10 grid grid-cols-1 gap-x-10 gap-y-10 md:grid-cols-2">
+          <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
             <div>
               <p className="font-mono text-xs uppercase tracking-widest text-primary">
                 Shipped
@@ -240,59 +293,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        <section id="how-it-works" className="border-t border-border py-16 sm:py-24">
-          <h2 className="font-heading text-2xl text-primary sm:text-3xl">
-            How it works
-          </h2>
-
-          {/* Mobile: simple stacked list, no room for the connector below. */}
-          <div className="mt-10 grid grid-cols-1 gap-y-12 sm:hidden">
-            {steps.map((step) => (
-              <div key={step.n} className="flex gap-5">
-                <span className="font-mono text-sm text-accent">{step.n}</span>
-                <div>
-                  <h3 className="font-heading text-lg text-foreground">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {step.body}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Desktop: a single spine down the center, steps alternating
-              left/right off of it, so the reading order (01 -> 06) is
-              exactly the line -- there's no other path to follow. */}
-          <div className="relative mt-14 hidden sm:block">
-            <div
-              aria-hidden
-              className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border"
-            />
-            <div className="grid grid-cols-[1fr_auto_1fr] gap-x-6">
-              {steps.map((step, i) => {
-                const onLeft = i % 2 === 0;
-                return (
-                  <div key={step.n} className="contents">
-                    <div className={onLeft ? "pb-4 text-right" : "pb-4"}>
-                      {onLeft && <StepText step={step} align="right" />}
-                    </div>
-                    <div className="flex justify-center">
-                      <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-forest bg-background font-mono text-xs text-forest">
-                        {step.n}
-                      </span>
-                    </div>
-                    <div className="pb-4">
-                      {!onLeft && <StepText step={step} align="left" />}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
       </main>
 
       <footer className="border-t border-border">
@@ -303,7 +303,7 @@ export default function Home() {
               className="mark-icon h-4 w-4 shrink-0 text-forest"
               style={{ "--mark-icon-src": "url(/shield-mark.png)" } as CSSProperties}
             />
-            GreenProof — independent, on-chain proof of environmental action.
+            GreenProof, independent, on-chain proof of environmental action.
           </span>
           <span className="font-mono">UZH Cardano testnet · Mesh SDK</span>
         </div>

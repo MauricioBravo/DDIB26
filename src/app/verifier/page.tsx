@@ -55,7 +55,7 @@ export default function VerifierDashboardPage() {
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
             Pick a case, visit the site, and attach your own photos or
             documents as independent evidence. No rotation assignment for
-            now -- any pending case can be inspected.
+            now, any pending case can be inspected.
           </p>
         </section>
 

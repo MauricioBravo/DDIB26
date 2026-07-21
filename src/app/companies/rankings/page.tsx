@@ -243,7 +243,7 @@ export default async function RankingsPage({
             these readings is presented as the true one.
           </p>
           <p className="mt-2 font-mono text-[11px] text-muted-foreground/80">
-            Example data -- not live certifications.
+            Example data, not live certifications.
           </p>
         </section>
 
