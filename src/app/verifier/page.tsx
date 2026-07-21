@@ -13,6 +13,15 @@ function formatDate(iso: string) {
   });
 }
 
+// Real verifier/jury rotation (project-brief.md §5 -- a verifier can't
+// repeatedly inspect the same company, jurors rotate from a DAO pool) is a
+// deliberate non-goal for this PoC, not an unfinished stub (decision
+// 2026-07-21, see docs/status.md Backend item 4). The algorithm itself
+// (tracking last-assigned-per-company, a rotation pool, etc.) adds real
+// complexity a live demo audience can't verify anyway -- what matters is
+// that the concept reads clearly. If this ever needs to look more "real"
+// for a demo, the cheap fix is presentational (e.g. copy that reads "this
+// case is assigned to you"), not an actual selection algorithm behind it.
 export default function VerifierDashboardPage() {
   const pending = listCases().filter((c) => c.status === "pending");
 
