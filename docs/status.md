@@ -15,9 +15,10 @@ Living document. Update it in the same commit as any change that finishes, start
 - Aiken 2-of-3 DAO voting contract source committed at `contracts/dao-validator/` (previously only existed outside the repo). Not yet wired into `/dao`.
 - Landing page (`src/app/page.tsx`) has a "Build docket" section showing shipped vs. next-up work, and "How it works" was redesigned with a center spine connecting steps 01-06 in reading order. Company rankings (`/companies/rankings`) shipped by Timi, see "Just built" below.
 - Vote and mint confirmations now show real block confirmation and a loading state in between, not just an immediate hash -- see "Just built" below.
+- **Verifier role now exists end to end** (login role, dashboard, evidence submission) — see "Just built" below. Cloudinary upload code is written and wired in; only the actual Cloudinary account/preset (a console setup step, no code) is still missing, see the Backend TODO.
 - Docker: full containerized dev environment (`docker-compose.yml`) and multi-stage production build (`Dockerfile`, `docker-compose.prod.yml`).
 - CI/CD: GitHub Actions (`.github/workflows/deploy.yml`) deploys to the Oracle Cloud instance on every push to `main`. See `docs/deploy.md`.
-- Still not wired up: Firebase, Firestore, Cloudinary, company/verifier upload flow. Everything below is still to do.
+- Still not wired up: Firebase, Firestore, company evidence-submission flow. Everything below is still to do.
 
 ## Just built: DAO Juror voting dashboard (2026-07-18)
 
@@ -81,9 +82,9 @@ Deliberately **not** computing a real hash (e.g. SHA-256) of uploaded evidence f
 
 To avoid two people (or their Claude Code sessions) building the same thing in parallel:
 
-- **Mauricio, done today:** mint hook (backend items 1-2) and transaction-status/block-confirmation work (Frontend — transaction status, items 1-4), plus a same-day bug fix (mint was blocking the certifying vote's response with no loading state) — see "Just built: mint hook" and the bug writeup below it. **Now starting:** the verifier dashboard + evidence upload (Frontend — verifier, items 1-2 below), the single biggest remaining blocker in the whole flow. **Don't start this from another branch without checking in first** — touches new `src/app/verifier/`, and `src/app/dao/[caseId]/page.tsx` for surfacing the evidence.
+- **Mauricio, done (2026-07-21):** the verifier role end to end (login role, dashboard, evidence-upload UI, Cloudinary helper code) — see "Just built: verifier role, end to end" above. Also done 2026-07-20: mint hook, transaction-status/block-confirmation work, and a same-day bug fix (mint was blocking the certifying vote's response with no loading state).
 - **Timi:** company ranking/leaderboard — **done and merged** (PR #2, 2026-07-20), see "Just built: company rankings" below. Scope call: the CO2/recycled-material categories (beyond `project-brief.md` §8's "trees planted only") are being kept, not trimmed — confirmed by Mauricio 2026-07-20.
-- **Timi, next task: Cloudinary `auto` preset + upload helper** (Backend item 3). Chosen over wiring the real Aiken validator (now deprioritized, see Backend item 7 and its reasoning) and over the smaller "verify on-chain" button, since this one actually unblocks the company/verifier evidence-upload work above rather than being a nice-to-have. No shared files with Mauricio's verifier work — this is a Cloudinary console setting plus a new, standalone upload helper module.
+- **Timi, next task, narrowed (2026-07-21): Cloudinary account + preset only, no code.** Mauricio already wrote and wired the upload helper (`src/lib/cloudinary.ts`) while building the verifier screens, to avoid the two of you building the same thing. What's left is purely console work: create the Cloudinary account, an unsigned upload preset with `auto` resource type, and set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` / `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` in the deployment environment. See Backend item 3 above for detail.
 
 Update this note (or delete it) once either piece lands, so it doesn't go stale.
 
@@ -125,6 +126,17 @@ Verified with fresh timing measurements (not just re-reading the diff): a direct
 
 On the "block appears instantly" question Mauricio raised (worried it might be read from somewhere suspect): checked with real numbers -- the vote tx above landed in a block only ~4-5 seconds after submission (submit ~00:12:24, block\_time 00:12:29). This testnet is lightly loaded with a 1-second `slotLength`, so fast confirmation is a genuine property of this specific network, not a sign the app is faking or reading stale data -- the `pollForBlock`/`pollForMintResolution` loops in `vote-panel.tsx` only start counting after the real submit, and the first poll fires 3-4s later, which is often enough time for this network to have already produced the confirming block.
 
+## Just built: verifier role, end to end (2026-07-21, Mauricio)
+
+- **Login** (`src/app/login/page.tsx`) — added a third simulated role, "Verifier" (`verifier@example.com` / `1234`), redirecting to `/verifier` on submit, same pattern as the existing DAO Juror role. Still no real auth, just consistent with how the other two roles already work.
+- **`/verifier`** (`src/app/verifier/page.tsx`) — dashboard listing every pending case, reusing `listCases()`. **Deliberately no rotation/assignment simulation** — any pending case can be inspected, per a scope decision this session: building fake rotation logic now would likely be thrown away once real rotation (Backend TODO item 4) exists, so it's simpler to skip it for this pass.
+- **`/verifier/[caseId]`** (`src/app/verifier/[caseId]/page.tsx` + `evidence-form.tsx`) — shows the company's submission for reference (read-only), then a mobile-first upload form: a large tap target for picking photos/a document (`capture="environment"` so it opens the camera directly on a phone), live local thumbnail previews, a remove button per file, and an optional notes field. Submitting calls a new Server Action (`src/app/verifier/actions.ts` → `submitVerifierEvidence` in `src/lib/cases.ts`), which appends uploaded files to the case's existing `verifierEvidence` without overwriting its seeded caption/location/capturedAt.
+- **`Evidence` type** (`src/lib/cases.ts`) gained an additive, optional `files?: EvidenceFile[]` field (`{ url, type: "image" | "raw" }`) — existing seeded cases are untouched.
+- **`src/lib/cloudinary.ts`** (new) — unsigned upload helper using Cloudinary's `auto` resource type endpoint (images and PDFs through the same call, per the scope decision above), reading `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` / `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` from the environment. `isCloudinaryConfigured()` lets the UI detect whether those are set and degrade gracefully (see below) rather than fail confusingly mid-upload.
+- **`/dao/[caseId]`** now renders the verifier's actual attached files (thumbnail grid for images, a link for documents) once any exist, replacing the old fixed "Photo pending Cloudinary" placeholder on that side — the company's own tile is unchanged (no upload flow for that side yet).
+- **Cloudinary isn't actually configured anywhere yet** — the env vars above don't exist in any deployment. The upload form detects this (`isCloudinaryConfigured()`) and shows "Photo and document upload isn't connected yet on this deployment" instead of letting someone try and hit a confusing error; submitting just a note still works today. **This changes Timi's task**: since the upload code already exists, his remaining piece is only creating the actual Cloudinary account + unsigned preset (console work) and setting those two env vars in the deployment — not writing an upload helper, to avoid duplicating this one.
+- Verified: `npm run build` and `npm run lint` clean. Manually exercised end to end with `agent-browser` at a 390px mobile viewport: signed in as Verifier (conceptually, navigated directly), opened the dashboard, opened a case, submitted a note-only evidence entry (no files, since Cloudinary isn't configured yet), confirmed the Server Action persisted it, and confirmed `/dao/case-003` reflects the updated caption immediately afterward. Full file upload itself is not yet exercised end to end since no real Cloudinary preset exists to test against.
+
 ## TODO, in priority order (2026-07-20)
 
 Reordered from a flat list to reflect what actually blocks a working end-to-end PoC demo vs. what's nice-to-have. Login/auth and company registration are explicitly deprioritized (Mauricio's call, 2026-07-20) — the existing simulated `/login` is good enough to keep demoing with for now. Within each group, most important first.
@@ -135,8 +147,8 @@ Reordered from a flat list to reflect what actually blocks a working end-to-end 
    Files: `src/lib/mint.ts`, `src/lib/blockchain-provider.ts`, `src/lib/cases.ts` (`castVote`), `src/app/dao/actions.ts`.
 2. [x] Record the resulting mint TxID on the case. Done — `mintStatus`/`mintTxHash`/`mintPolicyId`/`mintError` on `Case`.
    Files: `src/lib/cases.ts`.
-3. Cloudinary preset using `auto` resource type, so both images and PDFs upload through the same unsigned endpoint (see the scope decision above — no hashing, no per-type branching needed).
-   Files: none in-repo (Cloudinary console setting), new env var for the preset name/cloud name.
+3. **Narrowed to a console-only task (2026-07-21):** the upload code (`src/lib/cloudinary.ts`, using `auto` resource type so images and PDFs share one unsigned preset) is already written and wired into the verifier evidence form. All that's left: create the actual Cloudinary account + unsigned upload preset, then set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` in the deployment's environment. No code to write — this is Timi's task.
+   Files: none in-repo (Cloudinary console setting + env vars only).
 4. Verifier and jury rotation logic — can start simple (pick from a fixed pool) for the PoC.
    Files: new `src/lib/rotation.ts`.
 5. Jury rejection comment field + a `resubmitCase` action, so a rejected case can actually be sent back per `project-brief.md` §5 ("returns with comments... can be resubmitted") instead of just dead-ending.
@@ -157,17 +169,17 @@ Reordered from a flat list to reflect what actually blocks a working end-to-end 
 
 ### Frontend — verifier
 
-This entire role is currently a hard blocker — there is no verifier login, dashboard, or evidence upload of any kind today.
+**Done (2026-07-21)** — see "Just built: verifier role, end to end" above.
 
-1. Dashboard showing the case assigned by rotation. Without this, no verifier flow exists at all.
-   Files: new `src/app/verifier/page.tsx`.
-2. Evidence upload for that case (their own photos/document, same `auto`-preset pattern as the company side) — this is what actually completes the "independent verification" step in the brief.
-   Files: new `src/app/verifier/[caseId]/page.tsx`.
-3. Show that evidence next to the company's in `/dao/[caseId]` so the jury can actually review it (today those are hardcoded "Photo pending Cloudinary" placeholder tiles).
+1. [x] Dashboard showing pending cases. Done, no rotation assignment simulated (deliberate, see "Just built" above).
+   Files: `src/app/verifier/page.tsx`.
+2. [x] Evidence upload for a case. Done, code complete — blocked only on Cloudinary actually being configured (Backend item 3).
+   Files: `src/app/verifier/[caseId]/page.tsx`, `src/app/verifier/[caseId]/evidence-form.tsx`, `src/app/verifier/actions.ts`, `src/lib/cloudinary.ts`.
+3. [x] Show that evidence next to the company's in `/dao/[caseId]`. Done.
    Files: `src/app/dao/[caseId]/page.tsx`.
-4. Mobile-friendly pass — verifiers are realistically on a phone, standing at the site. Polish, not a blocker.
-   Files: same as items 1-2, styling only.
-5. **Deprioritized along with login/auth generally:** add a third "Verifier" role to the login role switch. A direct link to `/verifier` without full auth gating is good enough for the PoC in the meantime.
+4. [x] Mobile-friendly pass. Done — large tap targets, `capture="environment"` opens the camera directly on a phone, verified at a 390px viewport.
+   Files: same as items 1-2.
+5. [x] Add a third "Verifier" role to the login role switch. Done — no longer deprioritized, since the actual login screen is already fully simulated regardless of role count, so this was cheap to add for consistent navigation.
    Files: `src/app/login/page.tsx`.
 
 ### Frontend — transaction status (vote and mint)

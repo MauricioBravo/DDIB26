@@ -80,11 +80,37 @@ export default async function CasePage({
               <p className="font-mono text-xs uppercase tracking-widest text-accent">
                 Exhibit B &middot; Independent verifier
               </p>
-              <div className="mt-4 flex h-40 items-center justify-center border border-border bg-secondary">
-                <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                  Photo pending Cloudinary
-                </span>
-              </div>
+              {caseData.verifierEvidence.files?.length ? (
+                <ul className="mt-4 grid grid-cols-3 gap-2">
+                  {caseData.verifierEvidence.files.map((file, i) =>
+                    file.type === "image" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={i}
+                        src={file.url}
+                        alt={`Verifier evidence ${i + 1}`}
+                        className="h-20 w-full border border-border object-cover"
+                      />
+                    ) : (
+                      <a
+                        key={i}
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex h-20 items-center justify-center border border-border bg-secondary font-mono text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Document {i + 1}
+                      </a>
+                    ),
+                  )}
+                </ul>
+              ) : (
+                <div className="mt-4 flex h-40 items-center justify-center border border-border bg-secondary">
+                  <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                    Awaiting site visit
+                  </span>
+                </div>
+              )}
               <p className="mt-4 text-sm text-foreground">
                 {caseData.verifierEvidence.caption}
               </p>

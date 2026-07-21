@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-type Role = "company" | "juror";
+type Role = "company" | "juror" | "verifier";
 
 const ROLE_COPY: Record<Role, { label: string; description: string; email: string }> = {
   company: {
@@ -18,6 +18,12 @@ const ROLE_COPY: Record<Role, { label: string; description: string; email: strin
     description:
       "Review evidence from companies and verifiers, vote to certify or reject.",
     email: "admin@example.com",
+  },
+  verifier: {
+    label: "Verifier",
+    description:
+      "Visit the site in person and upload independent evidence for an assigned case.",
+    email: "verifier@example.com",
   },
 };
 
@@ -38,6 +44,10 @@ export default function LoginPage() {
       setError(null);
       if (role === "juror") {
         router.push("/dao");
+        return;
+      }
+      if (role === "verifier") {
+        router.push("/verifier");
         return;
       }
       setSignedInAs(role);
@@ -178,7 +188,8 @@ export default function LoginPage() {
 
               <p className="mt-6 font-mono text-xs leading-relaxed text-muted-foreground">
                 Demo credentials — Company: enterprise@example.com / 1234 · DAO
-                Juror: admin@example.com / 1234
+                Juror: admin@example.com / 1234 · Verifier:
+                verifier@example.com / 1234
               </p>
             </form>
           )}

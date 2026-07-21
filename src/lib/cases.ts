@@ -12,10 +12,20 @@ export type JurorVote = {
   castAt: string;
 };
 
+export type EvidenceFile = {
+  url: string;
+  type: "image" | "raw";
+};
+
 export type Evidence = {
   caption: string;
   location: string;
   capturedAt: string;
+  // Additive -- existing seeded cases have no files, only the hardcoded
+  // caption/location/capturedAt describing the evidence. Real uploads
+  // (Cloudinary, resource_type "auto" so photos and documents share one
+  // unsigned preset) attach here without touching the seed data shape.
+  files?: EvidenceFile[];
 };
 
 export type MintStatus = "pending" | "minted" | "failed";
@@ -174,6 +184,28 @@ export function listCases(): Case[] {
 
 export function getCase(id: string): Case | undefined {
   return cases.find((c) => c.id === id);
+}
+
+// Appends the verifier's own uploaded files (and an optional note) to a
+// case's existing verifierEvidence -- doesn't overwrite the seeded
+// caption/location/capturedAt, since those already describe a real
+// inspection for the demo cases; this just attaches what was uploaded.
+export function submitVerifierEvidence(
+  caseId: string,
+  input: { files: EvidenceFile[]; note?: string },
+): Case {
+  const target = cases.find((c) => c.id === caseId);
+  if (!target) {
+    throw new Error(`Unknown case: ${caseId}`);
+  }
+  target.verifierEvidence.files = [
+    ...(target.verifierEvidence.files ?? []),
+    ...input.files,
+  ];
+  if (input.note) {
+    target.verifierEvidence.caption = input.note;
+  }
+  return target;
 }
 
 export function addCase(input: NewCaseInput): Case {
