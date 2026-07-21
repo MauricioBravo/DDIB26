@@ -10,7 +10,7 @@ const steps = [
   {
     n: "02",
     title: "Evidence submission",
-    body: "The company uploads a photo of the action, trees planted in this proof of concept, plus GPS location, through an ordinary web form.",
+    body: "The company uploads a photo of the action, trees planted for now, plus GPS location, through an ordinary web form.",
   },
   {
     n: "03",
@@ -152,7 +152,23 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex flex-col justify-between gap-6 border-l border-border pl-6 sm:pl-10">
+          <div className="flex flex-col gap-8 border-l border-border pl-6 sm:pl-10">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                The gap
+              </p>
+              <p className="mt-2 text-sm font-medium text-foreground">
+                We verify. We don&apos;t reward.
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Minting a token for a green action is easy — plenty of
+                projects do it. Proving the action actually happened,
+                independently, and keeping that proof tamper-proof, is the
+                part everyone skips. GreenProof is built to be that layer:
+                any rewards program, badge, or token scheme can sit on top
+                of our verification instead of inventing its own.
+              </p>
+            </div>
             <div>
               <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                 Status
@@ -167,15 +183,6 @@ export default function Home() {
               >
                 See what&apos;s shipped and what&apos;s next &darr;
               </a>
-            </div>
-            <div>
-              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                Scope
-              </p>
-              <p className="mt-2 text-sm text-foreground">
-                Single category proof of concept: trees planted. Dedicated
-                UZH Cardano testnet.
-              </p>
             </div>
           </div>
         </section>
@@ -269,7 +276,7 @@ export default function Home() {
                 const onLeft = i % 2 === 0;
                 return (
                   <div key={step.n} className="contents">
-                    <div className={onLeft ? "pb-16 text-right" : "pb-16"}>
+                    <div className={onLeft ? "pb-4 text-right" : "pb-4"}>
                       {onLeft && <StepText step={step} align="right" />}
                     </div>
                     <div className="flex justify-center">
@@ -277,7 +284,7 @@ export default function Home() {
                         {step.n}
                       </span>
                     </div>
-                    <div className="pb-16">
+                    <div className="pb-4">
                       {!onLeft && <StepText step={step} align="left" />}
                     </div>
                   </div>

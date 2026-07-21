@@ -123,8 +123,8 @@ export default function LoginPage() {
                 Signed in as {ROLE_COPY[signedInAs].label}
               </p>
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                This is a simulated login for the proof of concept — no real
-                account or session was created. The {ROLE_COPY[signedInAs].label.toLowerCase()}{" "}
+                This is a demo login — no real account or session was
+                created. The {ROLE_COPY[signedInAs].label.toLowerCase()}{" "}
                 dashboard isn&apos;t built yet.
               </p>
               <button

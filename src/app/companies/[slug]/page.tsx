@@ -61,8 +61,7 @@ export default async function CompanyProfilePage({
             verification and a two-of-three DAO jury approval.
           </p>
           <p className="mt-2 font-mono text-[11px] text-muted-foreground/80">
-            Example profile for this proof of concept -- illustrative, not a
-            live on-chain lookup.
+            Example profile -- illustrative, not a live on-chain lookup.
           </p>
 
           <div className="mt-10 grid grid-cols-1 gap-y-12 sm:grid-cols-3">
