@@ -53,16 +53,28 @@ function StepText({
 
 const shippedItems = [
   {
+    title: "Company evidence submission",
+    detail: "Photos and a document filed through a standard web form, no wallet needed.",
+  },
+  {
+    title: "Independent verifier workflow",
+    detail: "Mobile-first evidence upload for on-site inspection.",
+  },
+  {
     title: "DAO jury voting",
-    detail: "Real, wallet-signed Cardano transactions on our testnet, not a simulation.",
+    detail: "Real, wallet-signed Cardano transactions, not a simulation. Rejections carry written feedback and can be resubmitted.",
   },
   {
-    title: "Public company profiles",
-    detail: "Certification badges and rankings, browsable with no login.",
+    title: "Auto-mint on jury approval",
+    detail: "A native Cardano token mints the moment a case crosses two of three approvals, no manual step.",
   },
   {
-    title: "Minting proven on-chain",
-    detail: "Backend builds, signs, and submits a real native-token mint end to end.",
+    title: "Live on-chain verification",
+    detail: "A certified company's badge is fetched straight from the chain, with a Validate button that re-checks it live.",
+  },
+  {
+    title: "Public company profiles and rankings",
+    detail: "Certification badges and leaderboards, browsable with no login.",
   },
   {
     title: "CI/CD",
@@ -72,20 +84,16 @@ const shippedItems = [
 
 const plannedItems = [
   {
-    title: "Auto-mint on jury approval",
-    detail: "Wire the proven mint pipeline to fire the moment a case hits 2 of 3.",
+    title: "Real accounts",
+    detail: "Firebase Authentication and Firestore, replacing the simulated role login.",
   },
   {
-    title: "Firebase authentication",
-    detail: "Replaces the simulated login for company, verifier, and juror roles.",
+    title: "Cardano Mainnet",
+    detail: "Moving from the university testnet to Cardano Mainnet.",
   },
   {
-    title: "Evidence submission",
-    detail: "Company photo + GPS upload, feeding real cases into the docket.",
-  },
-  {
-    title: "Verifier workflow",
-    detail: "Rotation-assigned independent site inspection.",
+    title: "Live re-verification for every vote",
+    detail: "Extending the on-chain Validate check beyond a single company to every certification.",
   },
 ];
 
