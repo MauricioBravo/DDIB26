@@ -25,6 +25,16 @@ Picked one company to make fully real end to end for the live demo, instead of b
 - Verified: `npm run build`/`npm run lint` clean; `verifyMintOnChain` tested directly (not just read from the diff) against a real TxID with `npx tsx`, returned the correct real quantity/company/issuedAt/block; `/companies/patagonia` correctly shows "Not certified yet" today (case-006 hasn't actually been voted through in this fresh in-memory store) while `/companies/ikea` (and the rest) are unaffected, still showing the static illustrative disclaimer.
 - **To actually see the real badge**: cast a real vote through `/dao/case-006` in the live app until it crosses 2-of-3 and mints, then reload `/companies/patagonia`.
 
+## Just built: landing page Sign up + Donate placeholders (2026-07-21, Mauricio)
+
+Per the group's final report (`GreenProof_Final_Report_DDiB2026_v7.docx`, not in-repo) confirming the PoC already covers what's needed: two visible placeholders added to the landing page so the missing pieces read as deliberate, not as gaps.
+
+- **Header: "Sign up" button** next to "Log in" (`src/app/page.tsx`), styled filled/accent so it reads as a distinct, more prominent action next to the outlined "Log in" -- deliberately inert (`disabled`, `title` tooltip, no `href`), no `/register` page exists yet. Explicit decision (Mauricio, 2026-07-21): no separate "claim wallet" button -- per the report, the custodial wallet and one-time private-key PDF download happen automatically at registration itself, not as a separate claim step, so a claim button would misrepresent the flow.
+- **Footer: "Donate" button** (`src/app/page.tsx`), styled with the `sand` token (Palette A's reserved CTA/badge color) -- same inert treatment. Represents the report's "public donation page" revenue stream (Sustainability Model section), not wired to a real page yet.
+- Both use native `disabled` + `title` tooltips, not real links, so neither produces a dead/404 link during a live demo.
+- **Noted, not changed**: the landing page's own "Build docket" Next up list (`plannedItems` in `src/app/page.tsx`) has drifted stale -- "Evidence submission" and "Auto-mint on jury approval" are listed as not-yet-built but have both actually shipped for a while. Flagged to Mauricio rather than silently rewritten, since this page's copy has been deliberately hand-curated each session (see the "Just built: vote-flow bug fixes" entry's note that Build docket content is manually kept in sync, not generated).
+- Verified: `npm run build`/`npm run lint` clean; checked visually with `agent-browser` at both mobile (390px) and desktop (1280px) widths.
+
 ## Current state (2026-07-21)
 
 - Repo, branch strategy (`main`/`dev`/`mauricio`/`timileyin`), and `CLAUDE.md`/`AGENTS.md` context in place.

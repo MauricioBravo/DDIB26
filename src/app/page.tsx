@@ -106,12 +106,22 @@ export default function Home() {
           GreenProof
         </span>
 
-        <Link
-          href="/login"
-          className="justify-self-end border border-primary px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-        >
-          Log in
-        </Link>
+        <div className="flex items-center gap-3 justify-self-end">
+          <button
+            type="button"
+            disabled
+            title="Company and inspector sign up, with automatic wallet setup and a one-time key download, is coming soon"
+            className="cursor-not-allowed border border-accent bg-accent px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-accent-foreground opacity-70"
+          >
+            Sign up
+          </button>
+          <Link
+            href="/login"
+            className="border border-primary px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+          >
+            Log in
+          </Link>
+        </div>
       </header>
 
       <nav className="mx-auto flex max-w-6xl items-center justify-center gap-8 px-6 pb-8 sm:px-10">
@@ -305,7 +315,17 @@ export default function Home() {
             />
             GreenProof, independent, on-chain proof of environmental action.
           </span>
-          <span className="font-mono">UZH Cardano testnet · Mesh SDK</span>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              disabled
+              title="Public donations page is coming soon. Donations help fund the system wallet that pays every certification's transaction fees."
+              className="cursor-not-allowed border border-sand bg-sand px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-forest opacity-70"
+            >
+              Donate
+            </button>
+            <span className="font-mono">UZH Cardano testnet · Mesh SDK</span>
+          </div>
         </div>
       </footer>
     </div>
