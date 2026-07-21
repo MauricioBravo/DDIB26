@@ -81,9 +81,9 @@ Deliberately **not** computing a real hash (e.g. SHA-256) of uploaded evidence f
 
 To avoid two people (or their Claude Code sessions) building the same thing in parallel:
 
-- **Mauricio, done today:** mint hook (backend items 1-2) and transaction-status/block-confirmation work (Frontend — transaction status, items 1-4) — see "Just built: mint hook" above. **Now starting:** the company evidence-submission form (Frontend — company, item 1 below) and the verifier dashboard + evidence upload (Frontend — verifier, items 1-2 below). **Don't start these from another branch without checking in first** — touches `src/lib/cases.ts`, new `src/app/company/`, new `src/app/verifier/`.
+- **Mauricio, done today:** mint hook (backend items 1-2) and transaction-status/block-confirmation work (Frontend — transaction status, items 1-4), plus a same-day bug fix (mint was blocking the certifying vote's response with no loading state) — see "Just built: mint hook" and the bug writeup below it. **Now starting:** the verifier dashboard + evidence upload (Frontend — verifier, items 1-2 below), the single biggest remaining blocker in the whole flow. **Don't start this from another branch without checking in first** — touches new `src/app/verifier/`, and `src/app/dao/[caseId]/page.tsx` for surfacing the evidence.
 - **Timi:** company ranking/leaderboard — **done and merged** (PR #2, 2026-07-20), see "Just built: company rankings" below. Scope call: the CO2/recycled-material categories (beyond `project-brief.md` §8's "trees planted only") are being kept, not trimmed — confirmed by Mauricio 2026-07-20.
-- **Timi, next task:** not yet assigned — the "verify on-chain" button (Frontend — transaction status, item 5) is the smallest remaining isolated item, or pick up the Cloudinary `auto` preset setup (Backend item 3) which unblocks Mauricio's evidence-upload work above.
+- **Timi, next task: Cloudinary `auto` preset + upload helper** (Backend item 3). Chosen over wiring the real Aiken validator (now deprioritized, see Backend item 7 and its reasoning) and over the smaller "verify on-chain" button, since this one actually unblocks the company/verifier evidence-upload work above rather than being a nice-to-have. No shared files with Mauricio's verifier work — this is a Cloudinary console setting plus a new, standalone upload helper module.
 
 Update this note (or delete it) once either piece lands, so it doesn't go stale.
 
@@ -141,10 +141,10 @@ Reordered from a flat list to reflect what actually blocks a working end-to-end 
    Files: new `src/lib/rotation.ts`.
 5. Jury rejection comment field + a `resubmitCase` action, so a rejected case can actually be sent back per `project-brief.md` §5 ("returns with comments... can be resubmitted") instead of just dead-ending.
    Files: `src/lib/cases.ts` (`JurorVote.comment`, new `resubmitCase` function, likely a new case status), `src/app/dao/[caseId]/vote-panel.tsx`, `src/app/dao/actions.ts`.
-6. Wire the real Aiken 2-of-3 validator (`contracts/dao-validator/`) into `/dao`, replacing the current real-vote-plus-two-simulated-votes design. Bigger technical lift than the rest above, and we already have something demoable without it, so it ranks lower.
-   Files: `src/app/dao/[caseId]/vote-panel.tsx`, `contracts/dao-validator/` (compile, get script CBOR), new `src/lib/dao-contract.ts`.
-7. **Deprioritized per Mauricio (2026-07-20):** Firebase project + service account, Firestore data model, real company registration, wallet-on-registration, real Firebase Authentication replacing `/login`.
+6. **Deprioritized per Mauricio (2026-07-20):** Firebase project + service account, Firestore data model, real company registration, wallet-on-registration, real Firebase Authentication replacing `/login`.
    Files (when picked up): new `src/lib/firebase.ts`, `src/lib/firebase-admin.ts`, `src/app/login/page.tsx`, new `src/app/register/page.tsx`, new `src/lib/wallet-provisioning.ts`, new `firebase-service-account.json` (never commit — already covered by `.gitignore`'s `*serviceAccount*.json` pattern).
+7. **Deprioritized per Mauricio (2026-07-20) — not useful for the PoC/live demo:** wiring the real Aiken 2-of-3 validator (`contracts/dao-validator/`) into `/dao`, replacing the current real-vote-plus-two-simulated-votes design. Reasoning: a genuine on-chain 2-of-3 quorum needs three real wallets signing the same case simultaneously, which overcomplicates a live demo for little added proof — one real, independently-verifiable vote (real hash, real block, checkable against the chain directly) already demonstrates the trust guarantee that matters. The PoC can be completed without this. Revisit post-submission if there's time, not before.
+   Files (when picked up): `src/app/dao/[caseId]/vote-panel.tsx`, `contracts/dao-validator/` (compile, get script CBOR), new `src/lib/dao-contract.ts`.
 
 ### Frontend — company
 
