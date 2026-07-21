@@ -10,6 +10,7 @@ export type JurorVote = {
   decision: VoteDecision;
   simulated: boolean;
   castAt: string;
+  comment?: string;
 };
 
 export type EvidenceFile = {
@@ -205,6 +206,30 @@ export function submitVerifierEvidence(
   if (input.note) {
     target.verifierEvidence.caption = input.note;
   }
+  return target;
+}
+
+// Restarts the assessment for a rejected case: back to "pending", votes and
+// mint state cleared, so it can go through jury review again. Evidence
+// (company + verifier) is intentionally left untouched -- the company or
+// verifier can add more evidence (via submitVerifierEvidence or the future
+// company upload flow) before or after calling this, addressing whatever
+// the rejection comments raised, per project-brief.md §5 ("returns with
+// comments... can be resubmitted").
+export function resubmitCase(caseId: string): Case {
+  const target = cases.find((c) => c.id === caseId);
+  if (!target) {
+    throw new Error(`Unknown case: ${caseId}`);
+  }
+  if (target.status !== "rejected") {
+    throw new Error(`Case ${caseId} isn't rejected, nothing to resubmit`);
+  }
+  target.status = "pending";
+  target.votes = [];
+  target.mintStatus = undefined;
+  target.mintTxHash = undefined;
+  target.mintPolicyId = undefined;
+  target.mintError = undefined;
   return target;
 }
 

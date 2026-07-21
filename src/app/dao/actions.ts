@@ -1,7 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { castVote, getCase, type Case, type VoteDecision } from "@/lib/cases";
+import {
+  castVote,
+  getCase,
+  resubmitCase as resubmitCaseInStore,
+  type Case,
+  type VoteDecision,
+} from "@/lib/cases";
 import { getTxConfirmation, type TxConfirmation } from "@/lib/blockchain-provider";
 
 export async function submitVote(
@@ -10,10 +16,30 @@ export async function submitVote(
   jurorLabel: string,
   decision: VoteDecision,
   simulated: boolean,
+  comment?: string,
 ): Promise<Case> {
-  const updated = await castVote(caseId, { jurorId, jurorLabel, decision, simulated });
+  const updated = await castVote(caseId, {
+    jurorId,
+    jurorLabel,
+    decision,
+    simulated,
+    comment,
+  });
   revalidatePath("/dao");
   revalidatePath(`/dao/${caseId}`);
+  return updated;
+}
+
+// Restarts a rejected case's assessment -- see resubmitCase in
+// src/lib/cases.ts. Reachable from both the jury case view and the
+// verifier's own view, since neither role has real distinct permissions in
+// this PoC.
+export async function resubmitCase(caseId: string): Promise<Case> {
+  const updated = resubmitCaseInStore(caseId);
+  revalidatePath("/dao");
+  revalidatePath(`/dao/${caseId}`);
+  revalidatePath("/verifier");
+  revalidatePath(`/verifier/${caseId}`);
   return updated;
 }
 

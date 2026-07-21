@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCase } from "@/lib/cases";
+import { resubmitCase } from "../../dao/actions";
 import { EvidenceForm } from "./evidence-form";
 
 export default async function VerifierCasePage({
@@ -54,6 +55,43 @@ export default async function VerifierCasePage({
             {caseData.companyEvidence.capturedAt}
           </p>
         </section>
+
+        {caseData.status === "rejected" && (
+          <section className="border-t border-border py-6">
+            <p className="font-mono text-xs uppercase tracking-widest text-destructive">
+              Rejected -- jury feedback
+            </p>
+            <ul className="mt-3 space-y-2">
+              {caseData.votes
+                .filter((v) => v.decision === "reject" && v.comment)
+                .map((v, i) => (
+                  <li key={i} className="text-sm text-foreground">
+                    &ldquo;{v.comment}&rdquo;
+                    <span className="ml-2 font-mono text-xs text-muted-foreground">
+                      &mdash; {v.jurorLabel}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Attach better evidence below, then resubmit for a fresh jury
+              review.
+            </p>
+            <form
+              action={async () => {
+                "use server";
+                await resubmitCase(caseData.id);
+              }}
+            >
+              <button
+                type="submit"
+                className="mt-3 border border-accent px-4 py-2 font-mono text-xs uppercase tracking-widest text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                Resubmit for review
+              </button>
+            </form>
+          </section>
+        )}
 
         <section className="border-t border-border py-6">
           <EvidenceForm caseId={caseData.id} initialCase={caseData} />

@@ -5,6 +5,7 @@ import type { VoteDecision } from "@/lib/cases";
 type SeatVote = {
   jurorLabel: string;
   decision: VoteDecision;
+  comment?: string;
 };
 
 const SEATS = 3;
@@ -60,6 +61,11 @@ export function QuorumBar({ votes }: { votes: SeatVote[] }) {
                   >
                     {vote.decision === "approve" ? "Approve" : "Reject"}
                   </p>
+                  {vote.comment && (
+                    <p className="mt-2 text-xs leading-snug text-muted-foreground">
+                      &ldquo;{vote.comment}&rdquo;
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="mt-1 font-mono text-sm text-muted-foreground">&mdash;</p>

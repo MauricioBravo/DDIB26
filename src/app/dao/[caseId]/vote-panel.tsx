@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { BrowserWallet, MeshTxBuilder } from "@meshsdk/core";
 import type { Case, VoteDecision } from "@/lib/cases";
 import { UZH_PROTOCOL_PARAMS } from "@/lib/uzh-protocol-params";
-import { submitVote, checkTxConfirmation, fetchCaseSnapshot } from "../actions";
+import {
+  submitVote,
+  checkTxConfirmation,
+  fetchCaseSnapshot,
+  resubmitCase,
+} from "../actions";
 import { QuorumBar } from "./quorum-bar";
 import { TxStatus, type TxPhase } from "@/components/tx-status";
 
@@ -23,18 +28,41 @@ type VoteStatus =
   | "done"
   | "error";
 
-const SIMULATED_VOTE_DELAY_MS = 3000;
+// Paced deliberately slower than the network itself needs, so the
+// simulated jurors read as a real sequence of independent people voting,
+// not a single instant batch -- both the gap after the real vote and the
+// gap between the two simulated votes use this.
+const SIMULATED_VOTE_DELAY_MS = 6000;
 const CONFIRMATION_POLL_MS = 4000;
 const CONFIRMATION_MAX_ATTEMPTS = 15; // ~1 minute at the interval above
 const MINT_STATUS_POLL_MS = 3000;
 const MINT_STATUS_MAX_ATTEMPTS = 20; // ~1 minute at the interval above
+// This testnet is lightly loaded and often confirms a tx within a few
+// seconds (verified with real timing -- see docs/status.md), which reads
+// as suspiciously instant rather than as a real confirmation. Enforcing a
+// visible minimum keeps the "confirming" animation perceptible without
+// changing the real block number once it's found.
+const MIN_CONFIRMING_DISPLAY_MS = 5000;
 
 const SIMULATED_JUROR_POOL = ["Juror #14", "Juror #29", "Juror #07"];
+
+const CANNED_REJECT_REASONS = [
+  "Evidence photos don't clearly show the reported planting area.",
+  "Location coordinates in the two submissions don't line up closely enough.",
+  "Quantity claimed seems inconsistent with the visible planting density.",
+  "Independent verification notes are too thin to confirm the claim.",
+];
 
 function pickSimulatedDecision(realDecision: VoteDecision): VoteDecision {
   const agrees = Math.random() < 0.7;
   if (agrees) return realDecision;
   return realDecision === "approve" ? "reject" : "approve";
+}
+
+function pickCannedRejectReason(): string {
+  return CANNED_REJECT_REASONS[
+    Math.floor(Math.random() * CANNED_REJECT_REASONS.length)
+  ];
 }
 
 function shuffledSimulatedJurors(): string[] {
@@ -63,15 +91,21 @@ function delay(ms: number) {
 
 // Polls until the tx shows up in a block or we give up -- Yaci Store 404s
 // until it's indexed, that's the normal "not confirmed yet" state, not an
-// error (see src/lib/blockchain-provider.ts).
+// error (see src/lib/blockchain-provider.ts). Enforces
+// MIN_CONFIRMING_DISPLAY_MS so the loading state is always perceptible.
 async function pollForBlock(
   txHash: string,
   onConfirmed: (blockHeight: number) => void,
 ) {
+  const startedAt = Date.now();
   for (let attempt = 0; attempt < CONFIRMATION_MAX_ATTEMPTS; attempt += 1) {
     await delay(CONFIRMATION_POLL_MS);
     const result = await checkTxConfirmation(txHash);
     if (result.confirmed && result.blockHeight !== undefined) {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < MIN_CONFIRMING_DISPLAY_MS) {
+        await delay(MIN_CONFIRMING_DISPLAY_MS - elapsed);
+      }
       onConfirmed(result.blockHeight);
       return;
     }
@@ -107,6 +141,8 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
   const [voteConfirming, setVoteConfirming] = useState(false);
   const [mintBlockHeight, setMintBlockHeight] = useState<number | null>(null);
   const [mintConfirming, setMintConfirming] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [resubmitting, setResubmitting] = useState(false);
   const polledMintTxRef = useRef<string | null>(null);
   const polledMintPendingRef = useRef(false);
 
@@ -169,6 +205,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
 
   async function castRealVote(decision: VoteDecision) {
     if (!wallet || !walletAddress || voteStatus !== "idle") return;
+    if (decision === "reject" && !rejectReason.trim()) return;
 
     setErrorMessage(null);
     setVoteStatus("building");
@@ -233,6 +270,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
         "You (connected wallet)",
         decision,
         false,
+        decision === "reject" ? rejectReason.trim() : undefined,
       );
       setCaseData(updated);
       setVoteStatus("done");
@@ -257,12 +295,14 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
 
     await delay(SIMULATED_VOTE_DELAY_MS);
     try {
+      const decisionA = pickSimulatedDecision(realDecision);
       const afterA = await submitVote(
         caseData.id,
         `sim-${jurorA}`,
         jurorA,
-        pickSimulatedDecision(realDecision),
+        decisionA,
         true,
+        decisionA === "reject" ? pickCannedRejectReason() : undefined,
       );
       setCaseData(afterA);
     } catch {
@@ -271,16 +311,41 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
 
     await delay(SIMULATED_VOTE_DELAY_MS);
     try {
+      const decisionB = pickSimulatedDecision(realDecision);
       const afterB = await submitVote(
         caseData.id,
         `sim-${jurorB}`,
         jurorB,
-        pickSimulatedDecision(realDecision),
+        decisionB,
         true,
+        decisionB === "reject" ? pickCannedRejectReason() : undefined,
       );
       setCaseData(afterB);
     } catch {
       // simulated vote failed silently, the real vote is still recorded
+    }
+  }
+
+  async function handleResubmit() {
+    setResubmitting(true);
+    try {
+      const updated = await resubmitCase(caseData.id);
+      setCaseData(updated);
+      setVoteStatus("idle");
+      setTxHash(null);
+      setVoteBlockHeight(null);
+      setVoteConfirming(false);
+      setMintBlockHeight(null);
+      setMintConfirming(false);
+      setRejectReason("");
+      setErrorMessage(null);
+      polledMintTxRef.current = null;
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Could not restart this case.",
+      );
+    } finally {
+      setResubmitting(false);
     }
   }
 
@@ -297,20 +362,18 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
         : "idle";
 
   return (
-    <div className="border border-border p-6 sm:p-8">
+    <div className="border border-border p-5 sm:p-6">
       <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
         Vote
       </p>
 
-      {alreadyResolved && caseData.votes.length === 0 ? null : null}
-
-      <div className="mt-6 space-y-8">
+      <div className="mt-5 space-y-6">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-foreground">
             1. Connect wallet
           </p>
           {walletStatus === "connected" && walletAddress ? (
-            <div className="mt-3">
+            <div className="mt-2">
               <p className="inline-flex items-center gap-2 font-mono text-sm text-primary">
                 <span className="h-2 w-2 rounded-full bg-primary" />
                 {truncateAddress(walletAddress)}
@@ -322,7 +385,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
               </p>
             </div>
           ) : (
-            <div className="mt-3">
+            <div className="mt-2">
               <button
                 type="button"
                 onClick={connectWallet}
@@ -333,11 +396,8 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                   ? "Opening Lace..."
                   : "Connect Lace"}
               </button>
-              {walletStatus === "unavailable" && (
-                <p className="mt-3 text-sm text-destructive">{errorMessage}</p>
-              )}
-              {walletStatus === "error" && (
-                <p className="mt-3 text-sm text-destructive">{errorMessage}</p>
+              {(walletStatus === "unavailable" || walletStatus === "error") && (
+                <p className="mt-2 text-sm text-destructive">{errorMessage}</p>
               )}
             </div>
           )}
@@ -349,11 +409,11 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
           </p>
 
           {alreadyResolved && voteStatus === "idle" && !txHash ? (
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-muted-foreground">
               This case is already resolved. No further votes are needed.
             </p>
           ) : voteStatus === "done" || (voteStatus === "error" && txHash) ? (
-            <div className="mt-3">
+            <div className="mt-2">
               <p className="text-sm text-muted-foreground">
                 {voteStatus === "done"
                   ? "Your vote was signed and submitted as a real transaction."
@@ -366,12 +426,26 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                 address={walletAddress}
               />
               {voteStatus === "error" && errorMessage && (
-                <p className="mt-3 text-sm text-destructive">{errorMessage}</p>
+                <p className="mt-2 text-sm text-destructive">{errorMessage}</p>
               )}
             </div>
           ) : (
-            <div className="mt-3">
-              <div className="flex flex-wrap gap-3">
+            <div className="mt-2">
+              <label
+                htmlFor="reject-reason"
+                className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground"
+              >
+                Reason (required to reject)
+              </label>
+              <textarea
+                id="reject-reason"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={2}
+                placeholder="Why would this evidence be rejected?"
+                className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+              />
+              <div className="mt-3 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() => castRealVote("approve")}
@@ -383,14 +457,18 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                 <button
                   type="button"
                   onClick={() => castRealVote("reject")}
-                  disabled={walletStatus !== "connected" || voteStatus !== "idle"}
+                  disabled={
+                    walletStatus !== "connected" ||
+                    voteStatus !== "idle" ||
+                    !rejectReason.trim()
+                  }
                   className="border border-destructive px-4 py-2 font-mono text-xs uppercase tracking-widest text-destructive transition-colors hover:bg-destructive hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Reject
                 </button>
               </div>
               {walletStatus !== "connected" && (
-                <p className="mt-3 font-mono text-xs text-muted-foreground">
+                <p className="mt-2 font-mono text-xs text-muted-foreground">
                   Connect a wallet to vote.
                 </p>
               )}
@@ -404,7 +482,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                 }
               />
               {voteStatus === "error" && (
-                <p className="mt-3 text-sm text-destructive">{errorMessage}</p>
+                <p className="mt-2 text-sm text-destructive">{errorMessage}</p>
               )}
             </div>
           )}
@@ -415,13 +493,13 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
             <p className="font-mono text-xs uppercase tracking-widest text-foreground">
               Quorum
             </p>
-            <div className="mt-4">
+            <div className="mt-3">
               <QuorumBar votes={caseData.votes} />
             </div>
 
             {caseData.status !== "pending" && (
               <p
-                className={`mt-6 font-mono text-sm uppercase tracking-widest ${
+                className={`mt-4 font-mono text-sm uppercase tracking-widest ${
                   caseData.status === "certified"
                     ? "text-primary"
                     : "text-destructive"
@@ -432,6 +510,25 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                   : "Rejected -- two of three jurors denied"}
               </p>
             )}
+
+            {caseData.status === "rejected" && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={handleResubmit}
+                  disabled={resubmitting}
+                  className="border border-accent px-4 py-2 font-mono text-xs uppercase tracking-widest text-accent transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-wait disabled:opacity-60"
+                >
+                  {resubmitting ? "Restarting..." : "Resubmit for review"}
+                </button>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Restarts the assessment: votes are cleared and the case
+                  goes back to the pending docket. Address the comments
+                  above first (e.g. attach better evidence as the verifier)
+                  before resubmitting.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -441,7 +538,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
               Certification token
             </p>
             {caseData.mintStatus === "failed" ? (
-              <p className="mt-3 text-sm text-destructive">
+              <p className="mt-2 text-sm text-destructive">
                 Minting failed: {caseData.mintError ?? "unknown error"}. The
                 jury decision itself is unaffected -- only the token issuance
                 needs a retry.
