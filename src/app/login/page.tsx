@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
 type Role = "company" | "juror" | "verifier";
@@ -35,22 +35,19 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [signedInAs, setSignedInAs] = useState<Role | null>(null);
+
+  const ROLE_ROUTE: Record<Role, string> = {
+    company: "/company",
+    juror: "/dao",
+    verifier: "/verifier",
+  };
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const expected = ROLE_COPY[role].email;
     if (email.trim().toLowerCase() === expected && password === VALID_PASSWORD) {
       setError(null);
-      if (role === "juror") {
-        router.push("/dao");
-        return;
-      }
-      if (role === "verifier") {
-        router.push("/verifier");
-        return;
-      }
-      setSignedInAs(role);
+      router.push(ROLE_ROUTE[role]);
     } else {
       setError("Those credentials don't match this role. Check the demo credentials below.");
     }
@@ -59,7 +56,6 @@ export default function LoginPage() {
   function switchRole(next: Role) {
     setRole(next);
     setError(null);
-    setSignedInAs(null);
   }
 
   return (
@@ -113,86 +109,62 @@ export default function LoginPage() {
         </div>
 
         <div className="border-l border-border pl-6 sm:pl-10">
-          {signedInAs ? (
+          <form onSubmit={handleSubmit} className="max-w-sm">
             <div>
-              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                Status
-              </p>
-              <p className="mt-2 inline-flex items-center gap-2 font-mono text-sm text-primary">
-                <span className="h-2 w-2 rounded-full bg-primary" />
-                Signed in as {ROLE_COPY[signedInAs].label}
-              </p>
-              <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                This is a demo login, no real account or session was
-                created. The {ROLE_COPY[signedInAs].label.toLowerCase()}{" "}
-                dashboard isn&apos;t built yet.
-              </p>
-              <button
-                type="button"
-                onClick={() => setSignedInAs(null)}
-                className="mt-6 font-mono text-xs uppercase tracking-widest text-accent hover:text-foreground"
+              <label
+                htmlFor="email"
+                className="font-mono text-xs uppercase tracking-widest text-muted-foreground"
               >
-                Sign out
-              </button>
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={ROLE_COPY[role].email}
+                className="mt-2 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+                autoComplete="email"
+              />
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="max-w-sm">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="font-mono text-xs uppercase tracking-widest text-muted-foreground"
-                >
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={ROLE_COPY[role].email}
-                  className="mt-2 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
-                  autoComplete="email"
-                />
-              </div>
 
-              <div className="mt-5">
-                <label
-                  htmlFor="password"
-                  className="font-mono text-xs uppercase tracking-widest text-muted-foreground"
-                >
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="****"
-                  className="mt-2 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
-                  autoComplete="current-password"
-                />
-              </div>
-
-              {error && (
-                <p className="mt-4 text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                className="mt-7 w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+            <div className="mt-5">
+              <label
+                htmlFor="password"
+                className="font-mono text-xs uppercase tracking-widest text-muted-foreground"
               >
-                Sign in as {ROLE_COPY[role].label}
-              </button>
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="****"
+                className="mt-2 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+                autoComplete="current-password"
+              />
+            </div>
 
-              <p className="mt-6 font-mono text-xs leading-relaxed text-muted-foreground">
-                Demo credentials. Company: enterprise@example.com / 1234 · DAO
-                Juror: admin@example.com / 1234 · Verifier:
-                verifier@example.com / 1234
+            {error && (
+              <p className="mt-4 text-sm text-destructive" role="alert">
+                {error}
               </p>
-            </form>
-          )}
+            )}
+
+            <button
+              type="submit"
+              className="mt-7 w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+            >
+              Sign in as {ROLE_COPY[role].label}
+            </button>
+
+            <p className="mt-6 font-mono text-xs leading-relaxed text-muted-foreground">
+              Demo credentials. Company: enterprise@example.com / 1234 · DAO
+              Juror: admin@example.com / 1234 · Verifier:
+              verifier@example.com / 1234
+            </p>
+          </form>
         </div>
       </main>
     </div>

@@ -66,18 +66,47 @@ export default async function CasePage({
               <p className="font-mono text-xs uppercase tracking-widest text-accent">
                 Exhibit A &middot; Company
               </p>
-              <div className="mt-3 flex h-20 items-center justify-center border border-border bg-secondary">
-                <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                  Photo pending Cloudinary
-                </span>
-              </div>
+              {caseData.companyEvidence.files?.length ? (
+                <ul className="mt-3 grid grid-cols-4 gap-2">
+                  {caseData.companyEvidence.files.map((file, i) =>
+                    file.type === "image" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={i}
+                        src={file.url}
+                        alt={`Company evidence ${i + 1}`}
+                        className="h-16 w-full border border-border object-cover"
+                      />
+                    ) : (
+                      <a
+                        key={i}
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex h-16 items-center justify-center border border-border bg-secondary font-mono text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Doc {i + 1}
+                      </a>
+                    ),
+                  )}
+                </ul>
+              ) : (
+                <div className="mt-3 flex h-20 items-center justify-center border border-border bg-secondary">
+                  <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                    Photo pending Cloudinary
+                  </span>
+                </div>
+              )}
               <p className="mt-3 text-sm text-foreground">
                 {caseData.companyEvidence.caption}
               </p>
-              <p className="mt-1 font-mono text-xs text-muted-foreground">
-                {caseData.companyEvidence.location} &middot;{" "}
-                {caseData.companyEvidence.capturedAt}
-              </p>
+              {(caseData.companyEvidence.location || caseData.companyEvidence.capturedAt) && (
+                <p className="mt-1 font-mono text-xs text-muted-foreground">
+                  {[caseData.companyEvidence.location, caseData.companyEvidence.capturedAt]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
             </div>
 
             <div className="border border-dashed border-border p-4">
@@ -118,12 +147,19 @@ export default async function CasePage({
               <p className="mt-3 text-sm text-foreground">
                 {caseData.verifierEvidence.caption}
               </p>
-              <p className="mt-1 font-mono text-xs text-muted-foreground">
-                {caseData.verifierEvidence.location} &middot;{" "}
-                {caseData.verifierEvidence.capturedAt}
-                {" · "}
-                {caseData.verifierEvidence.verifierId}
-              </p>
+              {(caseData.verifierEvidence.location ||
+                caseData.verifierEvidence.capturedAt ||
+                caseData.verifierEvidence.verifierId) && (
+                <p className="mt-1 font-mono text-xs text-muted-foreground">
+                  {[
+                    caseData.verifierEvidence.location,
+                    caseData.verifierEvidence.capturedAt,
+                    caseData.verifierEvidence.verifierId,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
             </div>
           </div>
         </section>

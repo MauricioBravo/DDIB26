@@ -2,13 +2,25 @@
 
 Living document. Update it in the same commit as any change that finishes, starts, or changes the scope of an item below — see the rule in `CLAUDE.md`. Do not let this go stale.
 
+## Just built: company evidence-submission flow, end to end (2026-07-21, Mauricio)
+
+- **Login** (`src/app/login/page.tsx`) -- Company role now redirects to `/company` on submit, same pattern as Juror/Verifier. The inline "dashboard isn't built yet" `signedInAs` state is gone (dead code once all three roles redirect); route lookup collapsed into a `ROLE_ROUTE` map.
+- **`/company`** (`src/app/company/page.tsx` + `evidence-form.tsx`) -- a company files a new case: name, tree count, a description, then photos plus an optional PDF through the same Cloudinary `auto`-preset helper (`src/lib/cloudinary.ts`) already used by the verifier form -- same two-control upload split ("Take a photo" / "Choose files") to avoid the same camera+PDF `capture` bug documented on that form. Submits via a new Server Action, `submitCompanyEvidence` (`src/app/company/actions.ts`), which calls `addCase()`.
+  Signature design choice (ran through `frontend-design` per `CLAUDE.md`): a live "Exhibit A" preview panel sits beside the form, styled identically to the actual Exhibit A tile on `/dao/[caseId]`, so filling the form visibly builds the exact record a verifier and jury will later see, rather than being a generic form disconnected from the rest of the docket metaphor.
+- **`NewCaseInput`/`Case` type change** (`src/lib/cases.ts`): `Evidence.location`/`Evidence.capturedAt` and `verifierEvidence.verifierId` are now optional, not forced placeholders. A freshly filed case's `verifierEvidence` is `{ caption: "Awaiting verifier inspection." }` with nothing else set, since verifier/jury rotation/assignment is a documented PoC non-goal (Backend item 4) -- there's no real "assigned verifier" to fill that field with. `castVote`'s mint call now falls back to `"unassigned"` for the on-chain verifier-id metadata when none is set. Existing seeded cases are untouched (all fields still populated).
+- **Render sites updated for the now-optional fields**: `/dao/[caseId]/page.tsx`'s Exhibit A tile now shows the company's real uploaded files (image grid / doc links) instead of always the "Photo pending Cloudinary" placeholder, falling back to that placeholder only when no files exist yet (i.e. still true for old seeded cases); both Exhibit A and Exhibit B's location/capturedAt/verifierId line only renders the parts that exist instead of assuming all three are always present. `/verifier/[caseId]/page.tsx`'s "company's submission (for reference)" block gained the same file-grid rendering and the same optional-field guard.
+- **`/company/cases`** (`src/app/company/cases/page.tsx`) -- status ledger: Pending / Certified / Rejected sections, same `divide-y divide-border border border-border` list language as `/dao`, `/companies`, `/verifier`. Rejected cases show every juror's rejection comment inline (same data `/verifier/[caseId]` already surfaces) plus a "Resubmit for review" button wired to the existing `resubmitCase` Server Action (`src/app/dao/actions.ts`) -- identical action, same as the verifier and juror surfaces already use. Certified cases show the mint outcome via the existing shared `TxStatus` component (policy/tx hash once minted, or the failure state).
+  **Scope note, deliberate**: there is still no real company identity/session (login stays a simulated role switch, no Firebase auth yet -- Backend item 6, still deprioritized). This page therefore shows every case on the docket, not ones "belonging" to a signed-in company, mirroring the exact same documented scope decision already made for `/verifier` (no rotation/assignment simulation, see that page's comment). Once real auth/Firestore lands, this naturally narrows to "cases filed by the signed-in company" with no redesign needed.
+- Verified: `npm run build` and `npm run lint` clean; `/company`, `/company/cases`, `/dao/case-001`, `/verifier/case-001` all return 200 against the dev server.
+
 ## Current state (2026-07-21)
 
 - Repo, branch strategy (`main`/`dev`/`mauricio`/`timileyin`), and `CLAUDE.md`/`AGENTS.md` context in place.
 - Next.js (App Router) + TypeScript + Tailwind scaffolded, shadcn/ui initialized with Palette A and custom typography (Fraunces/Work Sans/JetBrains Mono) instead of the default theme.
 - `frontend-design` skill installed at project scope.
 - Hola-mundo landing page (`src/app/page.tsx`) live, verifying the deploy pipeline end to end.
-- Second screen: `/login` (`src/app/login/page.tsx`) — simulated login with a role switch (Company / DAO Juror), hardcoded demo credentials, no real auth yet. Linked from the "Log in" nav item on the landing page. DAO Juror login now redirects to `/dao`; Company still gets the inline "not built yet" message.
+- Second screen: `/login` (`src/app/login/page.tsx`) — simulated login with a role switch (Company / DAO Juror / Verifier), hardcoded demo credentials, no real auth yet. Linked from the "Log in" nav item on the landing page. All three roles now redirect to their real screens (`/dao`, `/verifier`, `/company`).
+- **Company role now exists end to end** (evidence-submission form, own-cases status view, resubmit) — see "Just built: company evidence-submission flow" below.
 - DAO Juror voting dashboard (`/dao`, `/dao/[caseId]`) — see "Just built" below for detail.
 - Public companies directory (`/companies`) and per-company profile pages (`/companies/[slug]`) — no login required, linked from the landing page header. Static/illustrative data for now. See "Just built" below.
 - **Minting is now wired into the live app, not just a standalone script.** `castVote` (`src/lib/cases.ts`) calls a real `src/lib/mint.ts` module the moment a case crosses 2-of-3, building/signing/submitting a genuine transaction on the UZH testnet -- proven with a real TxID, see "Just built" below. Backend "system signer" wallet funded, no SSH to any UZH server. See `docs/uzh-network.md` for the network reference.
@@ -85,7 +97,7 @@ Deliberately **not** computing a real hash (e.g. SHA-256) of uploaded evidence f
 
 To avoid two people (or their Claude Code sessions) building the same thing in parallel:
 
-- **Mauricio, done (2026-07-21):** the verifier role end to end (login role, dashboard, evidence-upload UI, Cloudinary helper code), rejection feedback + resubmit, slower vote pacing, minimum confirmation-animation duration, compact case-page layout — see "Just built" entries above. Also done 2026-07-20: mint hook, transaction-status/block-confirmation work, and a same-day bug fix (mint was blocking the certifying vote's response with no loading state). **Now starting:** the company evidence-submission form (Frontend — company, item 1 below) — touches new `src/app/company/`, doesn't overlap anything below.
+- **Mauricio, done (2026-07-21):** the verifier role end to end (login role, dashboard, evidence-upload UI, Cloudinary helper code), rejection feedback + resubmit, slower vote pacing, minimum confirmation-animation duration, compact case-page layout — see "Just built" entries above. Also done 2026-07-20: mint hook, transaction-status/block-confirmation work, and a same-day bug fix (mint was blocking the certifying vote's response with no loading state). **Also done (2026-07-21):** the company evidence-submission flow (form, own-cases status view, resubmit) — see "Just built: company evidence-submission flow" above. All three Frontend — company TODO items are done.
 - **Timi:** company ranking/leaderboard — **done and merged** (PR #2, 2026-07-20), see "Just built: company rankings" below. Scope call: the CO2/recycled-material categories (beyond `project-brief.md` §8's "trees planted only") are being kept, not trimmed — confirmed by Mauricio 2026-07-20.
 - **Timi, current task: Cloudinary account + preset only, no code.** Mauricio already wrote and wired the upload helper (`src/lib/cloudinary.ts`) while building the verifier screens, to avoid the two of you building the same thing. What's left is purely console work: create the Cloudinary account, an unsigned upload preset with `auto` resource type, and set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` / `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` in the deployment environment. See Backend item 3 above for detail. Once that's live, verify the evidence-upload flow actually works end to end on `/verifier` and that the uploaded files show up on the DAO juror's case view too (`/dao/[caseId]` already renders them, should just work).
 - **Timi, next task after that: the "verify on-chain" button** (Frontend — transaction status, item 5 below), not verifier/jury rotation — that's been dropped as a non-goal for the PoC, see Backend item 4's reasoning above. The button touches `src/app/dao/[caseId]/vote-panel.tsx` and a new `src/lib/verify-onchain.ts`; no overlap with Mauricio's company-evidence work.
@@ -175,11 +187,13 @@ Reordered from a flat list to reflect what actually blocks a working end-to-end 
 
 ### Frontend — company
 
-1. Evidence-submission form: multiple photos plus an optional document (PDF), all through the Cloudinary `auto` preset above, no hashing (see scope decision). This is the missing link in the brief's flow (§3 step 2) — nothing today lets a company submit real evidence at all.
-   Files: new `src/app/company/page.tsx`, new `src/app/company/actions.ts` (calls the existing `addCase()` in `src/lib/cases.ts`), `src/lib/cases.ts` (`Evidence` changes from a single field to an array of `{url, type}`).
-2. View of own cases and their status (pending/certified/rejected + jury comment), closing the loop visually for the company side.
-   Files: new `src/app/company/cases/page.tsx`.
-3. Resubmit action from that view, once the backend item above exists.
+**Done (2026-07-21)** — see "Just built: company evidence-submission flow" above.
+
+1. [x] Evidence-submission form: multiple photos plus an optional document (PDF), all through the Cloudinary `auto` preset above, no hashing (see scope decision). This is the missing link in the brief's flow (§3 step 2).
+   Files: `src/app/company/page.tsx`, `src/app/company/evidence-form.tsx`, `src/app/company/actions.ts`, `src/lib/cases.ts`.
+2. [x] View of own cases and their status (pending/certified/rejected + jury comment), closing the loop visually for the company side. No real per-company identity yet, so this shows every case on the docket, same documented scope decision as `/verifier`.
+   Files: `src/app/company/cases/page.tsx`.
+3. [x] Resubmit action from that view. Reuses the existing `resubmitCase` Server Action, no new backend code needed.
    Files: same file as above.
 
 ### Frontend — verifier
@@ -199,7 +213,7 @@ Reordered from a flat list to reflect what actually blocks a working end-to-end 
 
 ### Frontend — transaction status (vote and mint)
 
-1. [x] Mint confirmation, with policy ID, TxID, and block — done, surfaced inline in `vote-panel.tsx`'s "Certification token" section (not a separate screen under `/company`, since that route doesn't exist yet; will move there once the company cases view is built).
+1. [x] Mint confirmation, with policy ID, TxID, and block — done, surfaced inline in `vote-panel.tsx`'s "Certification token" section, and now also as a compact `TxStatus` per case on `/company/cases` (tx hash once minted, or the failure state).
    Files: `src/app/dao/[caseId]/vote-panel.tsx`.
 2. [x] Reusable transaction-status component, done.
    Files: `src/components/tx-status.tsx`.

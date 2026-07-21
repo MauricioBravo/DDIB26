@@ -20,8 +20,12 @@ export type EvidenceFile = {
 
 export type Evidence = {
   caption: string;
-  location: string;
-  capturedAt: string;
+  // Optional -- seeded demo cases carry a real site location/capture date,
+  // but a company filing straight from the web form (no site visit yet)
+  // has neither, and a case's verifierEvidence starts as a placeholder
+  // before any verifier has inspected it. See addCase's callers.
+  location?: string;
+  capturedAt?: string;
   // Additive -- existing seeded cases have no files, only the hardcoded
   // caption/location/capturedAt describing the evidence. Real uploads
   // (Cloudinary, resource_type "auto" so photos and documents share one
@@ -38,7 +42,12 @@ export type Case = {
   quantity: string;
   submittedAt: string;
   companyEvidence: Evidence;
-  verifierEvidence: Evidence & { verifierId: string };
+  // verifierId is optional because verifier/jury rotation is a deliberate
+  // PoC non-goal (docs/status.md Backend item 4) -- a company can file a
+  // case before any verifier has been "assigned" to it, so a freshly
+  // created case's verifierEvidence starts as a caption-only placeholder
+  // with no verifierId/location/capturedAt yet.
+  verifierEvidence: Evidence & { verifierId?: string };
   status: CaseStatus;
   votes: JurorVote[];
   mintStatus?: MintStatus;
@@ -288,7 +297,7 @@ export async function castVote(
   // could be torn down before a detached promise finishes.
   if (justCertified) {
     target.mintStatus = "pending";
-    const verifierId = target.verifierEvidence.verifierId;
+    const verifierId = target.verifierEvidence.verifierId ?? "unassigned";
     mintCertificationToken({
       caseId: target.id,
       company: target.company,

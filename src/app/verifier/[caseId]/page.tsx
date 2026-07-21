@@ -47,13 +47,41 @@ export default async function VerifierCasePage({
           <p className="font-mono text-xs uppercase tracking-widest text-accent">
             Company&apos;s submission (for reference)
           </p>
+          {caseData.companyEvidence.files?.length ? (
+            <ul className="mt-3 grid grid-cols-4 gap-2">
+              {caseData.companyEvidence.files.map((file, i) =>
+                file.type === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={i}
+                    src={file.url}
+                    alt={`Company evidence ${i + 1}`}
+                    className="h-16 w-full border border-border object-cover"
+                  />
+                ) : (
+                  <a
+                    key={i}
+                    href={file.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex h-16 items-center justify-center border border-border bg-secondary font-mono text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Doc {i + 1}
+                  </a>
+                ),
+              )}
+            </ul>
+          ) : null}
           <p className="mt-3 text-sm text-foreground">
             {caseData.companyEvidence.caption}
           </p>
-          <p className="mt-2 font-mono text-xs text-muted-foreground">
-            {caseData.companyEvidence.location} &middot;{" "}
-            {caseData.companyEvidence.capturedAt}
-          </p>
+          {(caseData.companyEvidence.location || caseData.companyEvidence.capturedAt) && (
+            <p className="mt-2 font-mono text-xs text-muted-foreground">
+              {[caseData.companyEvidence.location, caseData.companyEvidence.capturedAt]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
         </section>
 
         {caseData.status === "rejected" && (
