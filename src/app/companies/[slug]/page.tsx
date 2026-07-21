@@ -1,11 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCompany, listCompanies } from "@/lib/companies";
+import { getCase } from "@/lib/cases";
 import { MintedSeal } from "../minted-seal";
+import { OnChainTreeBadge } from "./onchain-tree-badge";
 
 export function generateStaticParams() {
   return listCompanies().map((c) => ({ slug: c.slug }));
 }
+
+// This page now reads getCase() (the in-memory runtime case store, not
+// Next's data cache) for Patagonia's linked case -- same reasoning as
+// /dao and /verifier's force-dynamic: prerendering at build time would
+// freeze mintStatus/mintTxHash at whatever they were during the build,
+// so this page would never reflect a real mint that happens afterward.
+export const dynamic = "force-dynamic";
 
 export default async function CompanyProfilePage({
   params,
@@ -15,6 +24,11 @@ export default async function CompanyProfilePage({
   const { slug } = await params;
   const company = getCompany(slug);
   if (!company) notFound();
+
+  // Patagonia is the one company this PoC links to a real case (see the
+  // comment on `linkedCaseId` in src/lib/companies.ts) -- everyone else
+  // stays purely illustrative.
+  const linkedCase = company.linkedCaseId ? getCase(company.linkedCaseId) : undefined;
 
   return (
     <div className="flex-1 bg-background text-foreground">
@@ -61,13 +75,25 @@ export default async function CompanyProfilePage({
             verification and a two-of-three DAO jury approval.
           </p>
           <p className="mt-2 font-mono text-[11px] text-muted-foreground/80">
-            Example profile, illustrative, not a live on-chain lookup.
+            {linkedCase
+              ? "Example profile, illustrative, except the trees seal below: that one is a live on-chain lookup for this demo case."
+              : "Example profile, illustrative, not a live on-chain lookup."}
           </p>
 
           <div className="mt-10 grid grid-cols-1 gap-y-12 sm:grid-cols-3">
-            {company.badges.map((badge, i) => (
-              <MintedSeal key={i} badge={badge} />
-            ))}
+            {company.badges.map((badge, i) =>
+              linkedCase && badge.kind === "quantity" ? (
+                <OnChainTreeBadge
+                  key={i}
+                  caseId={linkedCase.id}
+                  mintStatus={linkedCase.mintStatus}
+                  mintTxHash={linkedCase.mintTxHash}
+                  mintPolicyId={linkedCase.mintPolicyId}
+                />
+              ) : (
+                <MintedSeal key={i} badge={badge} />
+              ),
+            )}
           </div>
         </section>
       </main>

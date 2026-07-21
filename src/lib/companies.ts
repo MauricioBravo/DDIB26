@@ -38,6 +38,12 @@ export type CompanyProfile = {
   contributions: Record<ContributionTypeId, number>;
   employees: number;
   badges: CompanyBadge[];
+  // Deliberate, single exception to this file being static/illustrative
+  // (see the comment above `companies`): the one real demo case this PoC
+  // points at for a live on-chain lookup. Only set for Patagonia. When
+  // present, the profile page fetches the trees badge live from the chain
+  // (src/lib/verify-onchain.ts) instead of using the static badge value.
+  linkedCaseId?: string;
 };
 
 // Static, illustrative directory for the public no-auth "Companies" pages.
@@ -46,6 +52,16 @@ export type CompanyProfile = {
 // to whatever a juror happens to vote on case-by-case during a live demo.
 // Same company names as cases.ts (real orgs, mock data) -- no logos or
 // trademarks used, per the sanity-check note already established there.
+//
+// One deliberate exception: Patagonia's `linkedCaseId` below points at
+// case-006, the one case this PoC treats as "the real demo case" -- once
+// that case is actually voted through /dao and mints for real, this
+// profile's trees badge is fetched live from the chain instead of the
+// static value. Chosen because case-006 is the newest seeded case and so
+// the one featured at the top of /dao by default (see listCases's sort) --
+// note that filing a new case via /company would become newer still and
+// take over that "featured" spot, which would NOT change this link (it's
+// pinned to case-006 specifically, not to "whichever case is featured").
 export const companies: CompanyProfile[] = [
   {
     slug: "ikea",
@@ -155,6 +171,7 @@ export const companies: CompanyProfile[] = [
     headlineStat: "3,400 trees certified",
     contributions: { trees: 3_400, co2: 640, recycled: 4_150 },
     employees: 3_000,
+    linkedCaseId: "case-006",
     badges: [
       {
         kind: "quantity",

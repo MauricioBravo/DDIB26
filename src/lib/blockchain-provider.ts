@@ -8,7 +8,7 @@ import type { IFetcher, ISubmitter } from "@meshsdk/common";
 // NOTE: YaciProvider's default baseUrl bakes in a trailing "/api/v1/" -- a
 // custom host must include that path segment too, or every request 404s
 // (silently swallowed to an empty array by the provider's own try/catch).
-const YACI_URL = "http://130.60.24.200:8080/api/v1/";
+export const YACI_URL = "http://130.60.24.200:8080/api/v1/";
 // Read-only fallback: a course-provided self-hosted Blockfrost instance on
 // the SAME chain (confirmed by identical slot/height at the same moment).
 // It has no working /tx/submit, so it's read-only -- submission always
