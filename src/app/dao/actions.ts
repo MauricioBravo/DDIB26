@@ -9,6 +9,10 @@ import {
   type VoteDecision,
 } from "@/lib/cases";
 import { getTxConfirmation, type TxConfirmation } from "@/lib/blockchain-provider";
+import {
+  fetchRawOnChainRecord,
+  type RawOnChainRecord,
+} from "@/lib/verify-onchain";
 
 export async function submitVote(
   caseId: string,
@@ -57,4 +61,15 @@ export async function checkTxConfirmation(txHash: string): Promise<TxConfirmatio
 // mint does. See the comment on the mint call in src/lib/cases.ts.
 export async function fetchCaseSnapshot(caseId: string): Promise<Case | null> {
   return getCase(caseId) ?? null;
+}
+
+// Backs the "verify on-chain" control: goes back to the UZH Cardano indexer
+// and returns its untouched answer for a transaction. Server-side for the
+// same reason as checkTxConfirmation above, plus one specific to this call:
+// the indexer is plain HTTP, so a browser fetch would be blocked as mixed
+// content the moment this app is served over HTTPS.
+export async function fetchRawChainRecord(
+  txHash: string,
+): Promise<RawOnChainRecord> {
+  return fetchRawOnChainRecord(txHash);
 }

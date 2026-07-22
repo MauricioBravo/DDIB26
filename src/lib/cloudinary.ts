@@ -9,14 +9,35 @@ import type { EvidenceFile } from "@/lib/cases";
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
+// Cloudinary's free tier rejects anything over 10MB per file, and it only
+// does so after the whole upload has been pushed up the wire. Checking the
+// size locally first turns a multi-minute wait that ends in a 400 into an
+// instant, readable refusal -- which matters most for the case this app is
+// actually built for: a verifier on mobile data, on site, uploading photos
+// straight off a phone camera. Found in real testing (2026-07-22) with a
+// 17MB PDF, which looked like a hung form rather than a rejected file.
+export const MAX_EVIDENCE_FILE_BYTES = 10 * 1024 * 1024;
+
 export function isCloudinaryConfigured(): boolean {
   return Boolean(CLOUD_NAME && UPLOAD_PRESET);
+}
+
+function formatMegabytes(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export async function uploadEvidenceFile(file: File): Promise<EvidenceFile> {
   if (!CLOUD_NAME || !UPLOAD_PRESET) {
     throw new Error(
       "Cloudinary isn't configured yet (missing NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME / NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET).",
+    );
+  }
+
+  if (file.size > MAX_EVIDENCE_FILE_BYTES) {
+    throw new Error(
+      `${file.name} is ${formatMegabytes(file.size)}, over the ${formatMegabytes(
+        MAX_EVIDENCE_FILE_BYTES,
+      )} limit per file. Attach a smaller version and try again.`,
     );
   }
 

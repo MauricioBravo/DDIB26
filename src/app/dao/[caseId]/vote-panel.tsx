@@ -11,6 +11,7 @@ import {
   resubmitCase,
 } from "../actions";
 import { QuorumBar } from "./quorum-bar";
+import { VerifyOnChain } from "./verify-on-chain";
 import { TxStatus, type TxPhase } from "@/components/tx-status";
 
 type WalletStatus =
@@ -425,6 +426,7 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                 blockHeight={voteBlockHeight}
                 address={walletAddress}
               />
+              {txHash && <VerifyOnChain txHash={txHash} recordLabel="vote" />}
               {voteStatus === "error" && errorMessage && (
                 <p className="mt-2 text-sm text-destructive">{errorMessage}</p>
               )}
@@ -556,6 +558,12 @@ export function VotePanel({ initialCase }: { initialCase: Case }) {
                 Policy ID:{" "}
                 <span className="text-foreground">{caseData.mintPolicyId}</span>
               </p>
+            )}
+            {caseData.mintTxHash && (
+              <VerifyOnChain
+                txHash={caseData.mintTxHash}
+                recordLabel="certification token"
+              />
             )}
           </div>
         )}
