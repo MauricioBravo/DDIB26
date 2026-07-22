@@ -2,6 +2,15 @@
 
 Living document. Update it in the same commit as any change that finishes, starts, or changes the scope of an item below — see the rule in `CLAUDE.md`. Do not let this go stale.
 
+## Just built: startup warning + docs for running without credentials (2026-07-22, Mauricio)
+
+Decided against handing out the live production `SYSTEM_SIGNER_MNEMONIC` broadly (e.g. to graders) or standing up a separate evaluation wallet — simpler and lower-risk: make it obvious, on the spot, that the app is missing credentials and where to go instead.
+
+- **`.env.example`** (new) — documents `SYSTEM_SIGNER_MNEMONIC` and the two `NEXT_PUBLIC_CLOUDINARY_*` vars with comments, no real values. Referenced from the README.
+- **`src/instrumentation.ts`** (new) — Next.js's `register()` startup hook (stable since v15, confirmed against `node_modules/next/dist/docs` before writing anything, per `AGENTS.md`). Runs once when the server starts; if any of the three vars above are missing, prints an impossible-to-miss `****`-bordered banner to the console naming exactly what's missing, confirming the rest of the app still works, and pointing at the live demo (`http://161.153.217.84/`) and the repo. Prints nothing at all once every var is set, so this has zero effect on the production deployment, which already has all three.
+- Verified for real, not just read from the diff: ran `npm run dev` locally (where `.env.local` has the mnemonic but not the Cloudinary vars, the actual current state of this machine) and confirmed the banner renders exactly as intended, naming only the two missing Cloudinary vars.
+- **README.md refreshed** — the "What's real today" section was stale (still said no company form, no verifier role, mint not yet automatic, all long since shipped). Rewritten to match current state, added a "Running this locally" section pointing at `.env.example` and the live demo, and fixed the `Stack` line's stale "Cloudinary planned but not yet wired up" claim.
+
 ## Just built: Cloudinary live, and the "verify on-chain" control (2026-07-22, Timi)
 
 Two assigned tasks, both landed. Cloudinary first, since the evidence pipeline was blocked on it.

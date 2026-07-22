@@ -39,7 +39,7 @@ evidence: independently verified, tamper-proof, and permanently recorded.
 Only the DAO jurors and the backend ever touch the blockchain directly.
 Companies and verifiers just use ordinary web forms.
 
-## What's real today vs. still pending (2026-07-20)
+## What's real today vs. still pending (2026-07-22)
 
 This is a working proof of concept in progress, not a finished product.
 For the live, line-by-line status and the full priority-ordered TODO (with
@@ -50,22 +50,26 @@ this section is just the summary.
 - DAO jury voting: a connected wallet signs and submits a real, fee-paying
   transaction (`/dao`, `/dao/[caseId]`), independently verified against the
   chain, not just displayed by the app.
-- Native token minting: the backend builds, signs, and submits a real
-  mint transaction end to end, with no SSH to any server required — see
-  `docs/uzh-network.md` for the endpoints and TxIDs.
-- Public company profiles (`/companies`, `/companies/[slug]`) with
-  blockchain-styled certification badges.
+- Native token minting: the backend builds, signs, and submits a real mint
+  transaction automatically the moment a case crosses 2 of 3 approvals, no
+  manual step — see `docs/uzh-network.md` for the endpoints and TxIDs.
+- Evidence uploads: companies and verifiers attach real photos and PDFs
+  through Cloudinary (`/company`, `/verifier`), visible on the juror's case
+  view and independently on a company's public profile.
+- A "verify on-chain" control re-queries the chain's own indexer directly
+  and renders its untouched response, on both the vote and the mint.
+- Public company profiles and rankings (`/companies`, `/companies/[slug]`,
+  `/companies/rankings`), including one company whose certification badge
+  is fetched live from the chain rather than shown as static data.
 
 **Still simulated or missing (see `docs/status.md` for the ordered plan):**
 - The 2-of-3 quorum today is one real vote plus two simulated votes; a
   tested Aiken smart-contract validator exists (`contracts/dao-validator/`)
   but isn't wired in yet.
-- The mint above isn't yet triggered automatically when a case reaches
-  2-of-3 — that hook is the top priority right now.
-- No company evidence-upload form, no verifier role/dashboard at all, no
-  real company ranking (today's `/companies` is a flat, unordered list).
 - Login is a simulated role switch with hardcoded credentials, no real
   Firebase Authentication yet — deliberately deprioritized for now.
+- Verifier/jury rotation is a deliberate non-goal for this proof of
+  concept, not an oversight — see `docs/status.md` for the reasoning.
 
 ## Stack
 
@@ -73,10 +77,10 @@ Next.js (App Router) + TypeScript + Tailwind, shadcn/ui with a custom
 palette and typography (never the default theme, see `CLAUDE.md`), Mesh
 SDK for all Cardano interaction against a dedicated UZH Cardano testnet
 (not Blockfrost/Preprod as originally planned — see `docs/uzh-network.md`
-for why and how), Firebase/Firestore/Cloudinary planned but not yet wired
-up.
+for why and how), Cloudinary for evidence uploads. Firebase/Firestore
+planned but not yet wired up, see `docs/status.md`.
 
-## Local development
+## Running this locally
 
 ```
 npm run dev      # local dev server
@@ -89,6 +93,16 @@ With Docker (see `docker-compose.yml`):
 ```
 docker compose up --build
 ```
+
+Both work out of the box with no setup: browsing, login, the voting UI,
+and rankings all run. Only real blockchain minting and evidence file
+uploads need credentials — without them, those two features show a clear
+"not connected" message instead of failing, and the running server prints
+a visible reminder of the same thing on startup.
+
+To see every feature working: copy `.env.example` to `.env.local` and ask
+a maintainer for real values, or just visit the live deployment at
+`http://161.153.217.84/`.
 
 ## Docs map
 
