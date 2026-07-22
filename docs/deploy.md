@@ -67,18 +67,24 @@ Production target: Oracle Cloud (OCI) Always Free compute instance, `sa-santiago
    sudo netfilter-persistent save                 # persist across reboots (iptables-persistent is preinstalled)
    ```
 
-## Server-side build args (Cloudinary)
+## Server-side secrets and build args (`.env` on the server)
 
-`NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` are `NEXT_PUBLIC_*` vars, which Next.js inlines into the client bundle at `next build` time, not at container runtime. `docker-compose.prod.yml` passes them into the image as build `args`, sourced from a plain `.env` file that Docker Compose auto-loads for `${...}` substitution when it sits next to the compose file (this is separate from `env_file:`, which only affects the running container, not the build).
+Two separate mechanisms both read from one `${DEPLOY_PATH}/.env` file on the server (not committed, same treatment as `.env.local`):
 
-One-time step once the Cloudinary account and unsigned preset exist: create `${DEPLOY_PATH}/.env` on the server (not committed, same treatment as `.env.local`) with:
+- **Build args** — `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` / `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` are `NEXT_PUBLIC_*` vars, which Next.js inlines into the client bundle at `next build` time, not at container runtime. `docker-compose.prod.yml`'s `build.args` sources them via `${...}` substitution, which Docker Compose auto-loads from a `.env` file next to the compose file.
+- **Runtime env** — `SYSTEM_SIGNER_MNEMONIC` is read at request time by `src/lib/mint.ts` via `process.env`, so it needs to reach the *running container*, not just the build. `docker-compose.prod.yml`'s `env_file: [{path: .env, required: false}]` injects everything in the same `.env` file into the container at startup. `required: false` so a server that hasn't created this file yet still deploys (mint just keeps failing with a clear error) instead of the whole `docker compose up` command erroring out and blocking every future deploy.
+
+Contents of `${DEPLOY_PATH}/.env` on the server:
 
 ```
+SYSTEM_SIGNER_MNEMONIC=the real 24-word mnemonic
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your-unsigned-preset-name
 ```
 
-Then redeploy (push to `main`, or manually re-run `docker compose -f docker-compose.prod.yml up --build -d` on the server). Verified locally (2026-07-21) that this plumbing actually works: building with dummy values and grepping the resulting image's `.next/static/chunks/` confirmed the dummy string lands in the compiled client JS, not just that the build succeeds.
+**Real incident, 2026-07-21/22**: this file was created once via `scp`, but the very next push to `main` silently deleted it — the "Sync source to server" step below runs `rsync --delete`, which removes anything on the server not present in the git checkout, and `.env` is intentionally gitignored so it never exists in that checkout. Fixed by adding `--exclude '.env'` to that rsync command in `.github/workflows/deploy.yml`. **Any file placed directly on the server outside of git must be added to that exclude list, or it gets wiped on the next deploy** — this bit real production minting on the first end-to-end test through the actual live app, not just a theoretical risk.
+
+Once `.env` exists (and survives deploys, per the fix above), redeploy: push to `main`, or manually re-run `docker compose -f docker-compose.prod.yml up --build -d` on the server. Verified locally (2026-07-21) that the build-arg plumbing itself works: building with dummy values and grepping the resulting image's `.next/static/chunks/` confirmed the dummy string lands in the compiled client JS, not just that the build succeeds.
 
 ## GitHub repository secrets
 
