@@ -67,6 +67,19 @@ Production target: Oracle Cloud (OCI) Always Free compute instance, `sa-santiago
    sudo netfilter-persistent save                 # persist across reboots (iptables-persistent is preinstalled)
    ```
 
+## Server-side build args (Cloudinary)
+
+`NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` are `NEXT_PUBLIC_*` vars, which Next.js inlines into the client bundle at `next build` time, not at container runtime. `docker-compose.prod.yml` passes them into the image as build `args`, sourced from a plain `.env` file that Docker Compose auto-loads for `${...}` substitution when it sits next to the compose file (this is separate from `env_file:`, which only affects the running container, not the build).
+
+One-time step once the Cloudinary account and unsigned preset exist: create `${DEPLOY_PATH}/.env` on the server (not committed, same treatment as `.env.local`) with:
+
+```
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your-unsigned-preset-name
+```
+
+Then redeploy (push to `main`, or manually re-run `docker compose -f docker-compose.prod.yml up --build -d` on the server). Verified locally (2026-07-21) that this plumbing actually works: building with dummy values and grepping the resulting image's `.next/static/chunks/` confirmed the dummy string lands in the compiled client JS, not just that the build succeeds.
+
 ## GitHub repository secrets
 
 Set these under `Settings -> Secrets and variables -> Actions` on `MauricioBravo/DDIB26`:

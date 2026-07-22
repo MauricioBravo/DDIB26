@@ -3,7 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Sourced from a .env file next to this compose file on the server
+        # (docker compose auto-loads it for ${...} substitution) -- not
+        # committed, same treatment as .env.local. See docs/deploy.md.
+        NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}
+        NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET:-}
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
-    # env_file: .env.production   # uncomment once Firebase/Cloudinary/Blockfrost credentials exist
+    # env_file: .env.production   # uncomment once Firebase/Blockfrost credentials exist
