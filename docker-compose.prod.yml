@@ -12,4 +12,15 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
-    # env_file: .env.production   # uncomment once Firebase/Blockfrost credentials exist
+    # Runtime env for the running container -- separate mechanism from the
+    # build.args above (which only inline the two NEXT_PUBLIC_* vars into
+    # the client bundle). SYSTEM_SIGNER_MNEMONIC is read at request time by
+    # src/lib/mint.ts via process.env, so it must reach the container here,
+    # not just be inlined at build time. Same server-side .env file as the
+    # build args above; not committed. `required: false` so a server that
+    # hasn't created this file yet still deploys (mint just keeps failing
+    # with the existing clear error) instead of the whole compose command
+    # erroring out and blocking every future deploy. See docs/deploy.md.
+    env_file:
+      - path: .env
+        required: false
